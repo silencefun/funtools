@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>24 Solar Terms</title>
+<style>
+  :root{
+    --radius:12px; --radius-sm:8px;
+    --border-color:rgba(255,255,255,.14);
+    --text-primary:#eef1fb; --text-secondary:#98a3c0; --text-muted:#8b93ad;
+    --bg:#07070d; --panel-bg:rgba(14,16,28,.82);
+    --bg-card:rgba(20,22,38,.72); --bg-secondary:rgba(255,255,255,.05);
+    --accent-color:#7c5cff; --accent-purple:#a78bfa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text-primary);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;}
+  body{display:flex;flex-direction:column;}
+  input[type=range]{accent-color:#7dd3fc;}
+  button{font:inherit;cursor:pointer;}
+  .btn-primary,.btn-secondary{
+    border-radius:8px;border:1px solid var(--border-color);padding:6px 12px;
+    background:rgba(255,255,255,.06);color:var(--text-primary);}
+  .btn-primary{background:rgba(125,211,252,.16);border-color:rgba(125,211,252,.4);}
+  .btn-primary:hover,.btn-secondary:hover{background:rgba(255,255,255,.13);}
+
+.st-wrap {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  background: #000010;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  user-select: none; }
+.st-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab; }
+.st-wrap.dragging .st-canvas {
+  cursor: grabbing; }
+.st-info {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(5, 5, 24, 0.62);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  z-index: 10;
+  pointer-events: none;
+  min-width: 160px; }
+.st-info-name {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(255, 210, 90, 0.45); }
+.st-info-date,
+.st-info-season,
+.st-info-angle {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-top: 2px;
+  font-family: 'Courier New', monospace; }
+.st-panel {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  background: rgba(5, 5, 24, 0.72);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  z-index: 10; }
+.st-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center; }
+.st-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px; }
+.st-field-label { white-space: nowrap; }
+.st-field input[type="range"] { width: 80px; accent-color: #ffaa00; }
+.st-value {
+  min-width: 32px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+  font-size: 12px; }
+.st-select {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 13px;
+  max-width: 170px; }
+.st-toggle {
+  opacity: 0.55;
+  transition: opacity 0.2s, box-shadow 0.2s; }
+.st-toggle.active {
+  opacity: 1;
+  box-shadow: 0 0 0 1px #ffaa00 inset, 0 0 10px rgba(255, 170, 0, 0.25); }
+@media (max-width: 640px) {
+  .st-wrap { height: 360px; }
+  .st-field input[type="range"] { width: 55px; }
+  .st-field { font-size: 12px; }
+  .st-select { max-width: 120px; font-size: 12px; }
+  .st-info { min-width: 120px; padding: 6px 10px; }
+  .st-info-name { font-size: 14px; }
+}
+.st-wrap.is-fs {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0; }
+.st-wrap.is-fs .st-canvas {
+  height: 100%; }
+.st-wrap.is-fs .st-panel {
+  display: none; }
+</style>
+<style>st-wrap{height:100vh!important;width:100vw!important;border-radius:0!important;}st-wrap canvas{width:100%!important;height:100%!important;display:block;}</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<div class="st-wrap">
+  <canvas id="st-canvas" class="st-canvas"></canvas>
+
+  <div class="st-info" id="st-info">
+    <div class="st-info-name" id="st-info-name">Start of Spring</div>
+    <div class="st-info-date" id="st-info-date">Date:Feb 4</div>
+    <div class="st-info-season" id="st-info-season">Season:Spring</div>
+    <div class="st-info-angle" id="st-info-angle">Orbit Angle:0.0°</div>
+  </div>
+
+  <div class="st-panel">
+    <div class="st-row">
+      <div class="st-field">
+        <span class="st-field-label">Speed</span>
+        <input type="range" id="st-speed" min="0" max="3" step="0.1" value="0.5" />
+        <span class="st-value" id="st-speed-val">0.5</span>
+      </div>
+      <div class="st-field">
+        <span class="st-field-label">Term</span>
+        <select id="st-select" class="st-select" set:html=></select>
+      </div>
+      <button class="btn-secondary st-toggle active" id="st-orbits">Orbit Path</button>
+      <button class="btn-secondary st-toggle active" id="st-tilt">Axial Tilt</button>
+      <button class="btn-secondary st-toggle active" id="st-season">Season Color</button>
+      <button class="btn-secondary" id="st-pause">Pause</button>
+      <button class="btn-secondary" id="st-fullscreen">Fullscreen</button>
+      <button class="btn-primary" id="st-demo">Auto Demo</button>
+    </div>
+  </div>
+</div>
+<script is:inline type="module">
+import * as THREE from 'three';
+
+const isZh = document.documentElement.lang === 'zh';
+const canvas = document.getElementById('st-canvas');
+if (!canvas) throw new Error('Canvas not found');
+const wrap = canvas.closest('.st-wrap');
+
+/* ---------- 24 Solar Terms data ---------- */
+const SOLAR_TERMS = [
+  { nameZh: '立春', nameEn: 'Start of Spring', angle: 0, date: 'Feb 4', season: 'spring', color: 0x90ee90 },
+  { nameZh: '雨水', nameEn: 'Rain Water', angle: 15, date: 'Feb 19', season: 'spring', color: 0x90ee90 },
+  { nameZh: '惊蛰', nameEn: 'Awakening of Insects', angle: 30, date: 'Mar 6', season: 'spring', color: 0x90ee90 },
+  { nameZh: '春分', nameEn: 'Spring Equinox', angle: 45, date: 'Mar 21', season: 'spring', color: 0x66cc66 },
+  { nameZh: '清明', nameEn: 'Pure Brightness', angle: 60, date: 'Apr 5', season: 'spring', color: 0x66cc66 },
+  { nameZh: '谷雨', nameEn: 'Grain Rain', angle: 75, date: 'Apr 20', season: 'spring', color: 0x66cc66 },
+  { nameZh: '立夏', nameEn: 'Start of Summer', angle: 90, date: 'May 6', season: 'summer', color: 0xff6347 },
+  { nameZh: '小满', nameEn: 'Grain Buds', angle: 105, date: 'May 21', season: 'summer', color: 0xff6347 },
+  { nameZh: '芒种', nameEn: 'Grain in Ear', angle: 120, date: 'Jun 6', season: 'summer', color: 0xff6347 },
+  { nameZh: '夏至', nameEn: 'Summer Solstice', angle: 135, date: 'Jun 21', season: 'summer', color: 0xff4500 },
+  { nameZh: '小暑', nameEn: 'Minor Heat', angle: 150, date: 'Jul 7', season: 'summer', color: 0xff4500 },
+  { nameZh: '大暑', nameEn: 'Major Heat', angle: 165, date: 'Jul 23', season: 'summer', color: 0xff4500 },
+  { nameZh: '立秋', nameEn: 'Start of Autumn', angle: 180, date: 'Aug 8', season: 'autumn', color: 0xdaa520 },
+  { nameZh: '处暑', nameEn: 'End of Heat', angle: 195, date: 'Aug 23', season: 'autumn', color: 0xdaa520 },
+  { nameZh: '白露', nameEn: 'White Dew', angle: 210, date: 'Sep 8', season: 'autumn', color: 0xdaa520 },
+  { nameZh: '秋分', nameEn: 'Autumn Equinox', angle: 225, date: 'Sep 23', season: 'autumn', color: 0xcd853f },
+  { nameZh: '寒露', nameEn: 'Cold Dew', angle: 240, date: 'Oct 8', season: 'autumn', color: 0xcd853f },
+  { nameZh: '霜降', nameEn: 'Frost Descent', angle: 255, date: 'Oct 23', season: 'autumn', color: 0xcd853f },
+  { nameZh: '立冬', nameEn: 'Start of Winter', angle: 270, date: 'Nov 7', season: 'winter', color: 0x4682b4 },
+  { nameZh: '小雪', nameEn: 'Minor Snow', angle: 285, date: 'Nov 22', season: 'winter', color: 0x4682b4 },
+  { nameZh: '大雪', nameEn: 'Major Snow', angle: 300, date: 'Dec 7', season: 'winter', color: 0x4682b4 },
+  { nameZh: '冬至', nameEn: 'Winter Solstice', angle: 315, date: 'Dec 22', season: 'winter', color: 0x1e90ff },
+  { nameZh: '小寒', nameEn: 'Minor Cold', angle: 330, date: 'Jan 6', season: 'winter', color: 0x1e90ff },
+  { nameZh: '大寒', nameEn: 'Major Cold', angle: 345, date: 'Jan 20', season: 'winter', color: 0x1e90ff }
+];
+
+const SEASON_LABEL = {
+  spring: "Spring",
+  summer: "Summer",
+  autumn: "Autumn",
+  winter: "Winter"
+};
+// Earth material tint per season (applied when season color toggle is on)
+const SEASON_EARTH_COLORS = {
+  spring: new THREE.Color(0x5aa86a), // greenish
+  summer: new THREE.Color(0xd9a441), // warm / bright golden
+  autumn: new THREE.Color(0xb5772a), // golden / brown
+  winter: new THREE.Color(0x8fb6e0)  // bluish / white
+};
+const EARTH_BASE_COLOR = new THREE.Color(0x2266aa);
+
+/* ---------- Constants ---------- */
+const SUN_RADIUS = Math.max(0.1, 5);
+const EARTH_RADIUS = Math.max(0.1, 1.5);
+const ORBIT_RADIUS = Math.max(0.1, 25);
+const MARKER_RADIUS = Math.max(0.1, 0.4);
+const AXIAL_TILT = 23.5 * Math.PI / 180; // fixed in world space (tilts toward +Z)
+
+/* ---------- Scene setup ---------- */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000010);
+
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+// Spherical camera controller (overview, looking at the Sun)
+const spherical = { radius: 58, theta: Math.PI / 2, phi: 1.032 };
+const cameraTarget = new THREE.Vector3(0, 0, 0);
+
+let W, H;
+function resize() {
+  const rect = wrap.getBoundingClientRect();
+  W = rect.width;
+  H = rect.height;
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix(); }
+resize();
+window.addEventListener('resize', resize);
+
+/* ---------- Lighting ---------- */
+const sunLight = new THREE.PointLight(0xffffff, 2, 300);
+scene.add(sunLight);
+const ambient = new THREE.AmbientLight(0x223355, 0.35);
+scene.add(ambient);
+
+/* ---------- Sun ---------- */
+const sunGeo = new THREE.SphereGeometry(SUN_RADIUS, 64, 64);
+const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+const sun = new THREE.Mesh(sunGeo, sunMat);
+scene.add(sun);
+
+// Sun glow sprite (additive)
+function makeGlowTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0, 'rgba(255,210,90,0.95)');
+  g.addColorStop(0.2, 'rgba(255,160,40,0.55)');
+  g.addColorStop(0.5, 'rgba(255,100,20,0.22)');
+  g.addColorStop(1, 'rgba(255,80,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c); }
+const glowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: makeGlowTexture(),
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false
+}));
+glowSprite.scale.set(22, 22, 1);
+scene.add(glowSprite);
+
+/* ---------- Earth (axial tilt group keeps tilt fixed in world space) ---------- */
+const earthTiltGroup = new THREE.Group();
+earthTiltGroup.rotation.x = AXIAL_TILT; // tilt north pole toward +Z, fixed in world space
+scene.add(earthTiltGroup);
+
+const earthGeo = new THREE.SphereGeometry(EARTH_RADIUS, 48, 48);
+const earthMat = new THREE.MeshPhongMaterial({
+  color: EARTH_BASE_COLOR.clone(),
+  shininess: 14,
+  specular: 0x223344
+});
+const earth = new THREE.Mesh(earthGeo, earthMat);
+earthTiltGroup.add(earth);
+
+// Axial tilt visualization: thin line (cylinder) through Earth + pole caps
+const axisGroup = new THREE.Group();
+earthTiltGroup.add(axisGroup);
+const axisHeight = 5.4;
+const axisGeo = new THREE.CylinderGeometry(Math.max(0.01, 0.06), Math.max(0.01, 0.06), axisHeight, 12);
+const axisMat = new THREE.MeshBasicMaterial({ color: 0xffe082 });
+const axisLine = new THREE.Mesh(axisGeo, axisMat);
+axisGroup.add(axisLine);
+// Pole caps to indicate tilt direction (north = warm, south = cool)
+const northCap = new THREE.Mesh(
+  new THREE.SphereGeometry(Math.max(0.05, 0.2), 16, 16),
+  new THREE.MeshBasicMaterial({ color: 0xff7043 })
+);
+northCap.position.y = axisHeight / 2;
+axisGroup.add(northCap);
+const southCap = new THREE.Mesh(
+  new THREE.SphereGeometry(Math.max(0.05, 0.2), 16, 16),
+  new THREE.MeshBasicMaterial({ color: 0x42a5f5 })
+);
+southCap.position.y = -axisHeight / 2;
+axisGroup.add(southCap);
+
+/* ---------- Orbit path (LineLoop at radius 25) ---------- */
+function makeOrbitLine(distance) {
+  const segments = 256;
+  const points = [];
+  for (let i = 0; i <= segments; i++) {
+    const a = (i / segments) * Math.PI * 2;
+    points.push(new THREE.Vector3(Math.cos(a) * distance, 0, Math.sin(a) * distance)); }
+  const geo = new THREE.BufferGeometry().setFromPoints(points);
+  const mat = new THREE.LineBasicMaterial({ color: 0x3a4a6a, transparent: true, opacity: 0.5 });
+  return new THREE.LineLoop(geo, mat); }
+const orbitPath = makeOrbitLine(ORBIT_RADIUS);
+scene.add(orbitPath);
+
+/* ---------- Label sprite factory ---------- */
+function makeLabel(text) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.font = 'bold 30px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+  ctx.lineWidth = 5;
+  ctx.strokeText(text, 128, 32);
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
+  ctx.fillText(text, 128, 32);
+  const texture = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, opacity: 0.55 });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(5, 1.25, 1);
+  return sprite; }
+
+/* ---------- 24 Solar term markers ---------- */
+const markers = [];
+const _white = new THREE.Color(0xffffff);
+for (let i = 0; i < SOLAR_TERMS.length; i++) {
+  const t = SOLAR_TERMS[i];
+  const a = t.angle * Math.PI / 180;
+  const pos = new THREE.Vector3(Math.cos(a) * ORBIT_RADIUS, 0, Math.sin(a) * ORBIT_RADIUS);
+
+  const group = new THREE.Group();
+  group.position.copy(pos);
+  scene.add(group);
+
+  const baseColor = new THREE.Color(t.color);
+  const mGeo = new THREE.SphereGeometry(MARKER_RADIUS, 20, 20);
+  const mMat = new THREE.MeshBasicMaterial({ color: baseColor.clone() });
+  const mesh = new THREE.Mesh(mGeo, mMat);
+  group.add(mesh);
+
+  // Label above the marker
+  const label = makeLabel(isZh ? t.nameZh : t.nameEn);
+  label.position.set(0, 2.4, 0);
+  group.add(label);
+
+  markers.push({ group, mesh, label, baseColor }); }
+
+/* ---------- Background stars (4000) ---------- */
+const starCount = 4000;
+const starGeo = new THREE.BufferGeometry();
+const starPos = new Float32Array(starCount * 3);
+const starColors = new Float32Array(starCount * 3);
+for (let i = 0; i < starCount; i++) {
+  const r = 150 + Math.random() * 350;
+  const u = Math.random() * 2 - 1;
+  const a = Math.random() * Math.PI * 2;
+  const s = Math.sqrt(1 - u * u);
+  starPos[i * 3] = r * s * Math.cos(a);
+  starPos[i * 3 + 1] = r * u;
+  starPos[i * 3 + 2] = r * s * Math.sin(a);
+  const b = 0.4 + Math.random() * 0.6;
+  const tint = Math.random();
+  if (tint < 0.7) {
+    starColors[i * 3] = b;
+    starColors[i * 3 + 1] = b;
+    starColors[i * 3 + 2] = b; } else if (tint < 0.85) {
+    starColors[i * 3] = b;
+    starColors[i * 3 + 1] = b * 0.85;
+    starColors[i * 3 + 2] = b * 0.6; } else {
+    starColors[i * 3] = b * 0.7;
+    starColors[i * 3 + 1] = b * 0.85;
+    starColors[i * 3 + 2] = b; }
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+function makeStarTexture() {
+  const c = document.createElement('canvas');
+  c.width = 32; c.height = 32;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.4, 'rgba(255,255,255,0.5)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(c); }
+const starMat = new THREE.PointsMaterial({
+  size: 1.2,
+  sizeAttenuation: true,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.95,
+  map: makeStarTexture(),
+  alphaTest: 0.01,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending
+});
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+/* ---------- Mouse / touch controls ---------- */
+let dragging = false;
+let lastX = 0, lastY = 0;
+let pinchDist = 0;
+
+canvas.addEventListener('pointerdown', (e) => {
+  dragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+  wrap.classList.add('dragging');
+  try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+  lastX = e.clientX;
+  lastY = e.clientY;
+  spherical.theta -= dx * 0.005;
+  spherical.phi -= dy * 0.005;
+  spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi)); });
+function endDrag() {
+  dragging = false;
+  wrap.classList.remove('dragging'); }
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  spherical.radius += e.deltaY * 0.12;
+  spherical.radius = Math.max(20, Math.min(300, spherical.radius)); }, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    if (pinchDist) {
+      const delta = pinchDist - dist;
+      spherical.radius += delta * 0.5;
+      spherical.radius = Math.max(20, Math.min(300, spherical.radius)); }
+    pinchDist = dist; }
+}, { passive: false });
+canvas.addEventListener('touchend', () => { pinchDist = 0; });
+
+/* ---------- State ---------- */
+let running = true;
+let paused = false;
+let globalSpeed = 0.5;
+let showOrbits = true;
+let showTilt = true;
+let seasonColorOn = true;
+let orbitalAngle = 0;       // degrees, kept in [0,360)
+let targetAngle = null;     // degrees or null (when jumping to a term)
+let currentTermIndex = 0;
+let demoActive = false;
+let demoTimer = null;
+
+/* ---------- Info overlay ---------- */
+const elInfoName = document.getElementById('st-info-name');
+const elInfoDate = document.getElementById('st-info-date');
+const elInfoSeason = document.getElementById('st-info-season');
+const elInfoAngle = document.getElementById('st-info-angle');
+
+function updateInfo(idx) {
+  const t = SOLAR_TERMS[idx];
+  elInfoName.textContent = isZh ? t.nameZh : t.nameEn;
+  elInfoDate.textContent = ("Date:") + t.date;
+  elInfoSeason.textContent = ("Season:") + SEASON_LABEL[t.season]; }
+
+/* ---------- Marker highlight ---------- */
+function setActiveMarker(idx) {
+  for (let i = 0; i < markers.length; i++) {
+    const m = markers[i];
+    if (i === idx) {
+      m.mesh.material.color.copy(m.baseColor).lerp(_white, 0.5);
+      m.label.material.opacity = 1.0; } else {
+      m.mesh.material.color.copy(m.baseColor);
+      m.label.material.opacity = 0.5; }
+  }
+}
+setActiveMarker(0);
+
+/* ---------- Jump to a solar term ---------- */
+function jumpToTerm(idx) {
+  targetAngle = SOLAR_TERMS[idx].angle;
+  updateInfo(idx); }
+
+/* ---------- Animation ---------- */
+const clock = new THREE.Clock();
+let infoTick = 0;
+const _targetEarthColor = new THREE.Color();
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (!running) return;
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  // Orbital angle: lerp to target when jumping, otherwise natural orbit
+  if (targetAngle !== null) {
+    let diff = targetAngle - orbitalAngle;
+    diff = ((diff % 360) + 540) % 360 - 180; // shortest path [-180,180]
+    orbitalAngle += diff * 0.1;
+    if (Math.abs(diff) < 0.5) {
+      orbitalAngle = targetAngle;
+      targetAngle = null; }
+  } else {
+    orbitalAngle += globalSpeed * 30 * dt; }
+  orbitalAngle = ((orbitalAngle % 360) + 360) % 360;
+
+  // Earth position on the orbit (tilt group rotation stays fixed => seasons)
+  const aRad = orbitalAngle * Math.PI / 180;
+  earthTiltGroup.position.set(Math.cos(aRad) * ORBIT_RADIUS, 0, Math.sin(aRad) * ORBIT_RADIUS);
+  // Earth self-rotation around its tilted (local) axis
+  earth.rotation.y += (0.5 + globalSpeed * 0.5) * dt;
+
+  // Determine current solar term (nearest marker)
+  const nearestIdx = Math.round(orbitalAngle / 15) % 24;
+  if (nearestIdx !== currentTermIndex) {
+    currentTermIndex = nearestIdx;
+    updateInfo(nearestIdx);
+    setActiveMarker(nearestIdx); }
+
+  // Pulse the active marker
+  const pulse = 1.7 + Math.sin(clock.elapsedTime * 4) * 0.25;
+  markers[currentTermIndex].mesh.scale.setScalar(pulse);
+
+  // Earth season color (smooth lerp)
+  if (seasonColorOn) {
+    _targetEarthColor.copy(SEASON_EARTH_COLORS[SOLAR_TERMS[currentTermIndex].season]); } else {
+    _targetEarthColor.copy(EARTH_BASE_COLOR); }
+  earthMat.color.lerp(_targetEarthColor, 0.05);
+
+  // Sun glow pulse
+  sun.rotation.y += 0.05 * dt;
+  const glowPulse = 1 + Math.sin(clock.elapsedTime * 1.5) * 0.04;
+  glowSprite.scale.set(22 * glowPulse, 22 * glowPulse, 1);
+
+  // Stars slow drift
+  stars.rotation.y += 0.005 * dt;
+
+  // Throttled angle readout
+  if (++infoTick % 4 === 0) {
+    elInfoAngle.textContent = ("Orbit Angle:") + orbitalAngle.toFixed(1) + '°'; }
+
+  // Camera from spherical coords around the Sun
+  const sinPhi = Math.sin(spherical.phi);
+  camera.position.x = cameraTarget.x + spherical.radius * sinPhi * Math.cos(spherical.theta);
+  camera.position.y = cameraTarget.y + spherical.radius * Math.cos(spherical.phi);
+  camera.position.z = cameraTarget.z + spherical.radius * sinPhi * Math.sin(spherical.theta);
+  camera.lookAt(cameraTarget);
+
+  renderer.render(scene, camera); }
+animate();
+
+/* ---------- Controls ---------- */
+const elSpeed = document.getElementById('st-speed');
+const elSpeedVal = document.getElementById('st-speed-val');
+const elSelect = document.getElementById('st-select');
+const elOrbits = document.getElementById('st-orbits');
+const elTilt = document.getElementById('st-tilt');
+const elSeason = document.getElementById('st-season');
+const elPause = document.getElementById('st-pause');
+const elFullscreen = document.getElementById('st-fullscreen');
+const elDemo = document.getElementById('st-demo');
+const panel = document.querySelector('.st-panel');
+
+elSpeed.addEventListener('input', (e) => {
+  globalSpeed = parseFloat(e.target.value);
+  elSpeedVal.textContent = globalSpeed.toFixed(1); });
+
+elOrbits.addEventListener('click', () => {
+  showOrbits = !showOrbits;
+  elOrbits.classList.toggle('active', showOrbits);
+  orbitPath.visible = showOrbits; });
+
+elTilt.addEventListener('click', () => {
+  showTilt = !showTilt;
+  elTilt.classList.toggle('active', showTilt);
+  axisGroup.visible = showTilt; });
+
+elSeason.addEventListener('click', () => {
+  seasonColorOn = !seasonColorOn;
+  elSeason.classList.toggle('active', seasonColorOn); });
+
+elSelect.addEventListener('change', (e) => {
+  jumpToTerm(parseInt(e.target.value, 10)); });
+
+elPause.addEventListener('click', () => {
+  paused = !paused;
+  running = !paused;
+  elPause.textContent = paused ? ("Resume") : ("Pause"); });
+
+// Fullscreen
+elFullscreen.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    wrap.requestFullscreen().catch(() => {}); } else {
+    document.exitFullscreen(); }
+});
+document.addEventListener('fullscreenchange', () => {
+  if (document.fullscreenElement) {
+    elFullscreen.textContent = "Exit";
+    if (panel) panel.style.display = 'none';
+    requestAnimationFrame(resize); } else {
+    elFullscreen.textContent = "Fullscreen";
+    if (panel) panel.style.display = '';
+    requestAnimationFrame(resize); }
+});
+
+// Auto Demo: cycle through all 24 solar terms (~1s each, 24s total) with varying speed
+function stopDemo() {
+  demoActive = false;
+  if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
+  if (elDemo) elDemo.textContent = "Auto Demo"; }
+elDemo.addEventListener('click', () => {
+  if (demoActive) { stopDemo(); return; }
+  demoActive = true;
+  elDemo.textContent = "Stop Demo";
+
+  let step = 0;
+  let demoIdx = currentTermIndex;
+  demoTimer = setInterval(() => {
+    step++;
+    demoIdx = (demoIdx + 1) % 24;
+    elSelect.value = String(demoIdx);
+    jumpToTerm(demoIdx);
+    // Varying speed each step
+    const newSpeed = 0.4 + Math.random() * 2.4;
+    globalSpeed = newSpeed;
+    elSpeed.value = newSpeed;
+    elSpeedVal.textContent = newSpeed.toFixed(1); }, 1000);
+
+  setTimeout(stopDemo, 24000); });
+
+// Visibility: pause when hidden & stop demo
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    running = false;
+    stopDemo(); } else {
+    running = !paused; }
+});
+
+updateInfo(0);
+</script>
+<script>(function(){var r=document.querySelector('.st-wrap');if(r)r.classList.add('is-fs');})();</script>
+</body>
+</html>

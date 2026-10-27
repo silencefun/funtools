@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virtual AC</title>
+<style>
+  :root{
+    --radius:12px; --radius-sm:8px;
+    --border-color:rgba(255,255,255,.14);
+    --text-primary:#eef1fb; --text-secondary:#98a3c0; --text-muted:#8b93ad;
+    --bg:#07070d; --panel-bg:rgba(14,16,28,.82);
+    --bg-card:rgba(20,22,38,.72); --bg-secondary:rgba(255,255,255,.05);
+    --accent-color:#7c5cff; --accent-purple:#a78bfa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text-primary);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;}
+  body{display:flex;flex-direction:column;}
+  input[type=range]{accent-color:#7dd3fc;}
+  button{font:inherit;cursor:pointer;}
+  .btn-primary,.btn-secondary{
+    border-radius:8px;border:1px solid var(--border-color);padding:6px 12px;
+    background:rgba(255,255,255,.06);color:var(--text-primary);}
+  .btn-primary{background:rgba(125,211,252,.16);border-color:rgba(125,211,252,.4);}
+  .btn-primary:hover,.btn-secondary:hover{background:rgba(255,255,255,.13);}
+
+.vac-wrap {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+  align-items: start; }
+
+.vac-unit {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; }
+
+.vac-display {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border: 2px solid #334155;
+  border-radius: var(--radius);
+  padding: 1.5rem 2rem;
+  text-align: center;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease, filter 0.4s ease;
+  position: relative;
+  overflow: hidden; }
+
+.vac-display.off {
+  opacity: 0.25;
+  filter: grayscale(1); }
+
+.vac-display-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem; }
+
+.vac-temp-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem; }
+
+.vac-temp-value {
+  font-size: 4rem;
+  font-weight: 800;
+  color: #22d3ee;
+  text-shadow: 0 0 20px rgba(34, 211, 238, 0.35), 0 0 60px rgba(34, 211, 238, 0.12);
+  font-variant-numeric: tabular-nums;
+  line-height: 1; }
+
+.vac-temp-unit {
+  font-size: 1.2rem;
+  color: #67e8f9;
+  font-weight: 600; }
+
+.vac-info-row {
+  display: flex;
+  gap: 1rem;
+  font-size: 1.4rem; }
+
+.vac-mode-icon, .vac-fan-icon {
+  opacity: 0.9;
+  transition: transform 0.3s ease; }
+
+.vac-fan-icon.spin {
+  animation: vac-spin 1s linear infinite; }
+
+@keyframes vac-spin {
+  to { transform: rotate(360deg); }
+}
+
+.vac-swing-indicator {
+  opacity: 0.6;
+  transition: opacity 0.3s; }
+
+.vac-swing-indicator.on {
+  opacity: 1;
+  animation: vac-swing-blink 1s ease-in-out infinite alternate; }
+
+@keyframes vac-swing-blink {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}
+
+.vac-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem; }
+
+.vac-status-led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #475569;
+  box-shadow: 0 0 6px rgba(71, 85, 105, 0.3);
+  transition: background 0.3s, box-shadow 0.3s; }
+
+.vac-status-led.on {
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.6); }
+
+.vac-status-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.5px; }
+
+.vac-air-vent {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem; }
+
+.vac-vent-slats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; }
+
+.vac-slat {
+  height: 6px;
+  background: #334155;
+  border-radius: 3px;
+  transition: transform 0.5s ease, background 0.3s; }
+
+.vac-slat.swing {
+  animation: vac-slat-sway 2s ease-in-out infinite alternate; }
+
+.vac-slat:nth-child(2).swing {
+  animation-delay: 0.15s; }
+
+.vac-slat:nth-child(3).swing {
+  animation-delay: 0.3s; }
+
+@keyframes vac-slat-sway {
+  from { transform: rotate(-8deg); }
+  to { transform: rotate(8deg); }
+}
+
+.vac-remote {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1rem;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; }
+
+.vac-remote-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color); }
+
+.vac-remote-brand {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.95rem; }
+
+.vac-remote-model {
+  font-size: 0.7rem;
+  color: var(--text-muted); }
+
+.vac-remote-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; }
+
+.vac-btn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  user-select: none; }
+
+.vac-btn:hover {
+  background: var(--accent-color);
+  color: #fff;
+  border-color: var(--accent-color); }
+
+.vac-btn:active {
+  transform: scale(0.96); }
+
+.vac-btn.active {
+  background: var(--accent-color);
+  color: #fff;
+  border-color: var(--accent-color); }
+
+.vac-btn-power {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dc2626;
+  border-color: #b91c1c;
+  color: #fff;
+  font-size: 1.4rem; }
+
+.vac-btn-power:hover {
+  background: #ef4444;
+  border-color: #dc2626; }
+
+.vac-btn-power.on {
+  background: #16a34a;
+  border-color: #15803d; }
+
+.vac-btn-power.on:hover {
+  background: #22c55e;
+  border-color: #16a34a; }
+
+.vac-section {
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem; }
+
+.vac-section-title {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 0.4rem; }
+
+.vac-temp-controls { display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem; }
+  .vac-temp-controls button { white-space: nowrap;  }
+
+.vac-btn-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700; }
+
+.vac-temp-display-small {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  font-variant-numeric: tabular-nums;
+  min-width: 60px;
+  text-align: center; }
+
+.vac-slider {
+  width: 100%;
+  accent-color: var(--accent-color);
+  cursor: pointer; }
+
+.vac-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem; }
+
+.vac-btn-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.4rem 0.2rem;
+  font-size: 0.75rem; }
+
+.vac-btn-mode span {
+  font-size: 1.1rem; }
+
+.vac-btn-mode small {
+  font-size: 0.65rem;
+  color: var(--text-secondary); }
+
+.vac-btn-mode.active small {
+  .vac-fan-controls button { white-space: nowrap; }
+  color: #fff; }
+
+.vac-fan-controls { display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem; }
+
+.vac-btn-fan {
+  padding: 0.35rem 0.2rem;
+  font-size: 0.75rem; }
+
+.vac-btn-swing {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.8rem; }
+
+@media (max-width: 768px) {
+  .vac-wrap {
+    grid-template-columns: 1fr;
+    max-width: 480px; }
+  .vac-display { padding: 1rem 1.25rem; min-height: 140px; }
+  .vac-temp-value { font-size: 3rem; }
+}
+</style>
+<style>vac-wrap{height:100vh!important;width:100vw!important;border-radius:0!important;}vac-wrap canvas{width:100%!important;height:100%!important;display:block;}</style>
+</head>
+<body>
+<div class="vac-wrap">
+  <div class="vac-unit">
+    <div class="vac-display" id="vac-display">
+      <div class="vac-display-inner" id="vac-display-inner">
+        <div class="vac-temp-row">
+          <span class="vac-temp-value" id="vac-temp">26</span>
+          <span class="vac-temp-unit">°C</span>
+        </div>
+        <div class="vac-info-row">
+          <span class="vac-mode-icon" id="vac-mode-icon">❄️</span>
+          <span class="vac-fan-icon" id="vac-fan-icon">🌀</span>
+          <span class="vac-swing-indicator" id="vac-swing">↔️</span>
+        </div>
+        <div class="vac-status-row">
+          <span class="vac-status-led" id="vac-status-led"></span>
+          <span class="vac-status-text" id="vac-status-text">Standby</span>
+        </div>
+      </div>
+    </div>
+    <div class="vac-air-vent">
+      <div class="vac-vent-slats">
+        <div class="vac-slat" id="vac-slat-1"></div>
+        <div class="vac-slat" id="vac-slat-2"></div>
+        <div class="vac-slat" id="vac-slat-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="vac-remote">
+    <div class="vac-remote-header">
+      <span class="vac-remote-brand">CoolMaster</span>
+      <span class="vac-remote-model">AC-2026</span>
+    </div>
+    <div class="vac-remote-body">
+      <button class="vac-btn vac-btn-power" id="vac-btn-power" title=Power>
+        <span class="vac-power-icon">⏻</span>
+      </button>
+
+      <div class="vac-section">
+        <div class="vac-section-title">Temp</div>
+        <div class="vac-temp-controls">
+          <button class="vac-btn vac-btn-circle" id="vac-btn-minus">−</button>
+          <div class="vac-temp-display-small" id="vac-temp-small">26°C</div>
+          <button class="vac-btn vac-btn-circle" id="vac-btn-plus">+</button>
+        </div>
+        <input type="range" class="vac-slider" id="vac-temp-slider" min="16" max="30" value="26" />
+      </div>
+
+      <div class="vac-section">
+        <div class="vac-section-title">Mode</div>
+        <div class="vac-mode-grid">
+          <button class="vac-btn vac-btn-mode" data-mode="cool" id="vac-mode-cool">
+            <span>❄️</span>
+            <small>Cool</small>
+          </button>
+          <button class="vac-btn vac-btn-mode" data-mode="heat" id="vac-mode-heat">
+            <span>☀️</span>
+            <small>Heat</small>
+          </button>
+          <button class="vac-btn vac-btn-mode" data-mode="dry" id="vac-mode-dry">
+            <span>💧</span>
+            <small>Dry</small>
+          </button>
+          <button class="vac-btn vac-btn-mode" data-mode="fan" id="vac-mode-fan">
+            <span>🌀</span>
+            <small>Fan</small>
+          </button>
+        </div>
+      </div>
+
+      <div class="vac-section">
+        <div class="vac-section-title">Fan</div>
+        <div class="vac-fan-controls">
+          <button class="vac-btn vac-btn-fan" data-fan="low" id="vac-fan-low">Low</button>
+          <button class="vac-btn vac-btn-fan" data-fan="mid" id="vac-fan-mid">Mid</button>
+          <button class="vac-btn vac-btn-fan" data-fan="high" id="vac-fan-high">High</button>
+          <button class="vac-btn vac-btn-fan" data-fan="auto" id="vac-fan-auto">Auto</button>
+        </div>
+      </div>
+
+      <div class="vac-section">
+        <div class="vac-section-title">Swing</div>
+        <button class="vac-btn vac-btn-swing" id="vac-btn-swing">
+          <span id="vac-swing-text">Swing: Off</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  const isZh = document.documentElement.lang === 'zh';
+  const t = (zh, en) => isZh ? zh : en;
+
+  let state = {
+    on: false,
+    temp: 26,
+    mode: 'cool',
+    fan: 'mid',
+    swing: false
+  };
+
+  const modes = {
+    cool: { icon: '❄️', name: t('制冷','Cool') },
+    heat: { icon: '☀️', name: t('制热','Heat') },
+    dry:  { icon: '💧', name: t('除湿','Dry') },
+    fan:  { icon: '🌀', name: t('送风','Fan') }
+  };
+
+  const fans = {
+    low:  t('低','Low'),
+    mid:  t('中','Mid'),
+    high: t('高','High'),
+    auto: t('自动','Auto')
+  };
+
+  // Audio context for white noise
+  let audioCtx = null;
+  let noiseNode = null;
+  let gainNode = null;
+  let noiseInterval = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  }
+
+  function playWindNoise() {
+    if (!state.on || state.mode !== 'cool') { stopWindNoise(); return; }
+    initAudio();
+    if (noiseNode) return;
+
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1; }
+
+    noiseNode = audioCtx.createBufferSource();
+    noiseNode.buffer = buffer;
+    noiseNode.loop = true;
+
+    // Lowpass filter for wind effect
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0.08;
+
+    noiseNode.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    noiseNode.start();
+
+    // Gentle volume modulation
+    let phase = 0;
+    noiseInterval = setInterval(() => {
+      phase += 0.1;
+      if (gainNode) gainNode.gain.setTargetAtTime(0.05 + Math.sin(phase) * 0.03, audioCtx.currentTime, 0.5); }, 200); }
+
+  function stopWindNoise() {
+    if (noiseInterval) { clearInterval(noiseInterval); noiseInterval = null; }
+    if (noiseNode) { try { noiseNode.stop(); } catch(e) {} noiseNode = null; }
+    gainNode = null; }
+
+  const elDisplay = document.getElementById('vac-display');
+  const elTemp = document.getElementById('vac-temp');
+  const elModeIcon = document.getElementById('vac-mode-icon');
+  const elFanIcon = document.getElementById('vac-fan-icon');
+  const elSwingInd = document.getElementById('vac-swing');
+  const elStatusLed = document.getElementById('vac-status-led');
+  const elStatusText = document.getElementById('vac-status-text');
+  const elBtnPower = document.getElementById('vac-btn-power');
+  const elTempSmall = document.getElementById('vac-temp-small');
+  const elSlider = document.getElementById('vac-temp-slider');
+  const elSlats = document.querySelectorAll('.vac-slat');
+
+  function updateUI() {
+    if (state.on) {
+      elDisplay.classList.remove('off');
+      elStatusLed.classList.add('on');
+      elBtnPower.classList.add('on');
+      elStatusText.textContent = modes[state.mode].name + ' · ' + fans[state.fan];
+      elTemp.textContent = state.temp;
+      elTempSmall.textContent = state.temp + '°C';
+      elModeIcon.textContent = modes[state.mode].icon;
+      elFanIcon.classList.add('spin');
+      if (state.fan === 'low') elFanIcon.style.animationDuration = '2s';
+      else if (state.fan === 'mid') elFanIcon.style.animationDuration = '1s';
+      else if (state.fan === 'high') elFanIcon.style.animationDuration = '0.4s';
+      else elFanIcon.style.animationDuration = '1.2s';
+
+      elSwingInd.style.opacity = state.swing ? '1' : '0.3';
+      elSwingInd.classList.toggle('on', state.swing);
+
+      elSlats.forEach(s => {
+        s.classList.toggle('swing', state.swing);
+        s.style.background = state.mode === 'heat' ? '#ea580c' : '#334155'; });
+
+      document.querySelectorAll('.vac-btn-mode').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === state.mode); });
+      document.querySelectorAll('.vac-btn-fan').forEach(b => {
+        b.classList.toggle('active', b.dataset.fan === state.fan); });
+
+      playWindNoise(); } else {
+      elDisplay.classList.add('off');
+      elStatusLed.classList.remove('on');
+      elBtnPower.classList.remove('on');
+      elStatusText.textContent = t('待机','Standby');
+      elTemp.textContent = '--';
+      elFanIcon.classList.remove('spin');
+      elSwingInd.classList.remove('on');
+      elSlats.forEach(s => s.classList.remove('swing'));
+      stopWindNoise(); }
+  }
+
+  elBtnPower.addEventListener('click', () => {
+    state.on = !state.on;
+    updateUI(); });
+
+  document.getElementById('vac-btn-minus').addEventListener('click', () => {
+    if (!state.on) return;
+    if (state.temp > 16) state.temp--;
+    elSlider.value = state.temp;
+    updateUI(); });
+
+  document.getElementById('vac-btn-plus').addEventListener('click', () => {
+    if (!state.on) return;
+    if (state.temp < 30) state.temp++;
+    elSlider.value = state.temp;
+    updateUI(); });
+
+  elSlider.addEventListener('input', () => {
+    if (!state.on) return;
+    state.temp = parseInt(elSlider.value, 10);
+    updateUI(); });
+
+  document.querySelectorAll('.vac-btn-mode').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!state.on) return;
+      state.mode = btn.dataset.mode;
+      updateUI(); }); });
+
+  document.querySelectorAll('.vac-btn-fan').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!state.on) return;
+      state.fan = btn.dataset.fan;
+      updateUI(); }); });
+
+  document.getElementById('vac-btn-swing').addEventListener('click', () => {
+    if (!state.on) return;
+    state.swing = !state.swing;
+    document.getElementById('vac-swing-text').textContent = state.swing
+      ? t('摆动: 开','Swing: On')
+      : t('摆动: 关','Swing: Off');
+    updateUI(); });
+
+  updateUI(); })();
+</script>
+<script>(function(){var r=document.querySelector('.vac-wrap');if(r)r.classList.add('is-fs');})();</script>
+</body>
+</html>

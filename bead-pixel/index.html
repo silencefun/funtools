@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Photo to Bead Pixel Art · Demo</title>
+<style>
+  :root{
+    --bg:#fafafa; --panel:#fff; --line:#e6e6e6; --ink:#222; --muted:#888;
+    --accent:#3b6ef0; --accent-soft:#eef2ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font:14px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink);
+  }
+  header{padding:16px 20px; border-bottom:1px solid var(--line); background:var(--panel)}
+  header h1{margin:0; font-size:16px; font-weight:600}
+  header p{margin:4px 0 0; color:var(--muted); font-size:12px}
+  .wrap{display:flex; gap:16px; padding:16px; align-items:flex-start; flex-wrap:wrap}
+  .controls{width:300px; flex:0 0 auto; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px}
+  .stage{flex:1 1 360px; min-width:320px; display:flex; flex-direction:column; gap:14px}
+  .compare{display:flex; gap:14px; flex-wrap:wrap}
+  .compare > .card{flex:1 1 320px; min-width:0}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px}
+  .field{margin-bottom:14px}
+  .field:last-child{margin-bottom:0}
+  label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px}
+  .row{display:flex; align-items:center; gap:8px}
+  input[type=range]{width:100%}
+  .val{font-variant-numeric:tabular-nums; color:var(--ink); min-width:42px; text-align:right; font-size:12px}
+  select,button{font:inherit}
+  select{width:100%; padding:7px 8px; border:1px solid var(--line); border-radius:8px; background:#fff}
+  .seg{display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+  .seg button{flex:1; border:0; background:#fff; padding:7px; cursor:pointer; color:var(--muted)}
+  .seg button.on{background:var(--accent); color:#fff}
+  .btn{width:100%; padding:9px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  .btn:active{transform:translateY(1px)}
+  .drop{border:2px dashed var(--line); border-radius:10px; padding:22px; text-align:center; color:var(--muted); cursor:pointer}
+  .drop.hot{border-color:var(--accent); background:var(--accent-soft); color:var(--accent)}
+  canvas{display:block; max-width:100%; border-radius:8px; background:#fff}
+  #preview{width:100%; max-width:480px; height:auto; margin:0 auto; background:
+    linear-gradient(45deg,#f0f0f0 25%,transparent 25%),
+    linear-gradient(-45deg,#f0f0f0 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#f0f0f0 75%),
+    linear-gradient(-45deg,transparent 75%,#f0f0f0 75%);
+    background-size:16px 16px; background-position:0 0,0 8px,8px -8px,-8px 0}
+  .counts{display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px}
+  .chip{display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:12px}
+  .sw{width:16px; height:16px; border-radius:4px; border:1px solid rgba(0,0,0,.12); flex:0 0 auto}
+  .chip .n{margin-left:auto; font-variant-numeric:tabular-nums; color:var(--muted)}
+  .total{font-size:13px; color:var(--ink); margin-top:10px}
+  .hint{font-size:11px; color:var(--muted); margin-top:6px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Photo to Bead Pixel Art · Demo</h1>
+  <p>Pure front-end Canvas prototype · Perceptual color matching (LAB/ΔE) + greedy color-cap merging + click-to-sample background removal</p>
+</header>
+
+<div class="wrap">
+  <!-- Controls -->
+  <div class="controls">
+    <div class="field">
+      <label>Image input</label>
+      <div id="drop" class="drop">Click / drag / paste an image<br><span style="font-size:11px">(or press Ctrl+V to paste)</span></div>
+      <input id="file" type="file" accept="image/*" class="hidden" />
+    </div>
+
+    <div class="field">
+      <label>Bead palette</label>
+      <div class="seg" id="palSeg">
+        <button data-pal="perler" class="on">Perler</button>
+        <button data-pal="hama">Hama</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Grid size (beads on long side)</label>
+      <div class="row">
+        <input id="grid" type="range" min="15" max="100" value="32" />
+        <span class="val" id="gridV">32</span>
+      </div>
+      <label style="margin-top:8px"><input id="square" type="checkbox" /> Crop the selection to a square</label>
+    </div>
+
+    <div class="field">
+      <label>Brightness</label>
+      <div class="row"><input id="bright" type="range" min="-80" max="80" value="0" /><span class="val" id="brightV">0</span></div>
+      <label style="margin-top:8px">Contrast</label>
+      <div class="row"><input id="contrast" type="range" min="-80" max="80" value="0" /><span class="val" id="contrastV">0</span></div>
+      <label style="margin-top:8px">Saturation</label>
+      <div class="row"><input id="sat" type="range" min="-80" max="80" value="0" /><span class="val" id="satV">0</span></div>
+    </div>
+
+    <div class="field">
+      <label>Max colors (buy fewer bead colors)</label>
+      <div class="row"><input id="cap" type="range" min="5" max="60" value="40" /><span class="val" id="capV">40</span></div>
+      <div class="hint">Greedily merges the least-used color into its nearest neighbour, so you need to buy fewer bead colors.</div>
+    </div>
+
+    <div class="field">
+      <label><input id="bgOn" type="checkbox" /> Remove background</label>
+      <div class="row" style="margin-top:6px"><input id="bgTol" type="range" min="5" max="120" value="40" /><span class="val" id="bgTolV">40</span></div>
+      <div class="hint">When enabled, click the background color on the source image below - matching pixels become transparent (no bead generated).</div>
+    </div>
+
+    <div class="field">
+      <button id="exportBtn" class="btn primary">Export PNG preview</button>
+    </div>
+  </div>
+
+  <!-- Stage -->
+  <div class="stage">
+    <div class="compare">
+      <div class="card" id="srcCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <label style="color:var(--muted);font-size:12px;margin:0">Source image (drag to select a region - click to sample the background)</label>
+          <button id="resetSel" class="btn" style="width:auto;padding:4px 10px;font-size:12px">Reset selection</button>
+        </div>
+        <canvas id="src" width="300" height="300" style="cursor:default"></canvas>
+      </div>
+
+      <div class="card">
+        <label style="color:var(--muted);font-size:12px;margin-bottom:8px;display:block">Bead preview</label>
+        <canvas id="preview" width="600" height="600"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <label style="color:var(--muted);font-size:12px;margin-bottom:8px;display:block">Bead list</label>
+      <div id="counts" class="counts"></div>
+      <div class="total" id="total">Not generated yet</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ Palettes (representative data, replace with official hex) ============ */
+// Perler and Hama share many near-identical colors; this is a representative demo palette,
+// swappable later for each brand's official hex values.
+const PERLER = [
+  ["White",0xffffff],["Cream",0xf4e3c1],["Eggshell",0xf7f0d8],["Black",0x111111],
+  ["Grey",0x8c8c8c],["Dark Grey",0x595959],["Light Grey",0xc9c9c9],["Silver",0xd9d9d9],
+  ["Brown",0x5c3317],["Dark Brown",0x3b2412],["Tan",0xb97a56],["Light Brown",0xc8a07e],["Beige",0xe3d2b0],
+  ["Red",0xc81414],["Bright Red",0xe8251e],["Rust",0x9e3b1f],["Maroon",0x6e1b2e],
+  ["Orange",0xf45b22],["Light Orange",0xf89b3e],["Coral",0xf26d6d],["Salmon",0xf2a48c],
+  ["Yellow",0xf4d000],["Gold",0xe6b422],["Neon Yellow",0xe2f016],["Pastel Yellow",0xfcec7b],["Mustard",0xc9a227],
+  ["Green",0x18a035],["Dark Green",0x005c27],["Forest",0x2e5c2e],["Olive",0x808000],["Light Green",0x8fd88b],["Neon Green",0x00d15a],["Mint",0xb6e5c8],
+  ["Teal",0x00a0a8],["Turquoise",0x3fc9c9],["Aqua",0x5bc8d8],["Sky",0xa6d8f0],
+  ["Blue",0x1c4fb0],["Light Blue",0x7fc7e8],["Navy",0x001c71],["Indigo",0x3b2f8f],
+  ["Purple",0x7b279b],["Lavender",0xc58fd6],["Pastel Violet",0xc9a7e0],["Plum",0x6b2a6b],
+  ["Pink",0xf4a6c0],["Hot Pink",0xde108c],["Pastel Pink",0xfbd2dd],["Magenta",0xc026a0]
+];
+const HAMA = [
+  ["White",0xffffff],["Cream",0xf6ead0],["Off White",0xf3f1e7],["Black",0x101010],
+  ["Grey",0x9a9a9a],["Dark Grey",0x616161],["Light Grey",0xcfcfcf],["Silver",0xdedede],
+  ["Brown",0x6b3a1f],["Dark Brown",0x43271a],["Tan",0xc08a5e],["Light Brown",0xcda884],["Beige",0xe7d8b8],
+  ["Red",0xcf1f1f],["Bright Red",0xe8362c],["Rust",0xa64b2c],["Maroon",0x7a2233],
+  ["Orange",0xf26a23],["Light Orange",0xf5a04a],["Coral",0xef7a73],["Salmon",0xf3b39c],
+  ["Yellow",0xf6d11a],["Gold",0xe6bb2e],["Neon Yellow",0xe6f23a],["Pastel Yellow",0xfdf0a0],["Mustard",0xcaa52e],
+  ["Green",0x1fa83f],["Dark Green",0x0a5e2a],["Forest",0x356b35],["Olive",0x8a8a1f],["Light Green",0x9bdd95],["Neon Green",0x21d96a],["Mint",0xbfe8cf],
+  ["Teal",0x0aa7a7],["Turquoise",0x46cfcf],["Aqua",0x66cfe0],["Sky",0xaadcf2],
+  ["Blue",0x2157c0],["Light Blue",0x8ccdec],["Navy",0x10247a],["Indigo",0x433aa0],
+  ["Purple",0x8432a3],["Lavender",0xcaa0de],["Pastel Violet",0xd0b3ea],["Plum",0x712f71],
+  ["Pink",0xf6aec8],["Hot Pink",0xe63f9c],["Pastel Pink",0xfcdbe4],["Magenta",0xc837a3]
+];
+
+/* ============ Color utilities ============ */
+function hexToRgb(h){return [(h>>16)&255,(h>>8)&255,h&255];}
+function rgbToLab(r,g,b){
+  r/=255;g/=255;b/=255;
+  r=r>0.04045?Math.pow((r+0.055)/1.055,2.4):r/12.92;
+  g=g>0.04045?Math.pow((g+0.055)/1.055,2.4):g/12.92;
+  b=b>0.04045?Math.pow((b+0.055)/1.055,2.4):b/12.92;
+  let x=(r*0.4124+g*0.3576+b*0.1805)/0.95047;
+  let y=(r*0.2126+g*0.7152+b*0.0722)/1.0;
+  let z=(r*0.0193+g*0.1192+b*0.9505)/1.08883;
+  const f=t=>t>0.008856?Math.cbrt(t):7.787*t+16/116;
+  x=f(x);y=f(y);z=f(z);
+  return [116*y-16,500*(x-y),200*(y-z)];
+}
+function dist2Lab(a,b){
+  const dl=a[0]-b[0],da=a[1]-b[1],db=a[2]-b[2];
+  return dl*dl+da*da+db*db;
+}
+// Precompute palette LAB values
+let PAL=[], PAL_LAB=[];
+function loadPalette(name){
+  PAL = name==='hama'?HAMA:PERLER;
+  PAL_LAB = PAL.map(([,h])=>{const[r,g,b]=hexToRgb(h);return rgbToLab(r,g,b);});
+}
+
+/* ============ State ============ */
+let img=null;            // Loaded Image
+let bgSample=null;       // [r,g,b] sampled background color
+let sel=null;            // Selected region (source pixel coords {x,y,w,h}), null = whole image
+let dragSel=null, dragStart=null, dragMoved=false;
+let dispScale=1, dispW=0, dispH=0;  // Source display scale
+const $ = id=>document.getElementById(id);
+
+/* ============ Image input ============ */
+const drop=$('drop'), fileInput=$('file');
+drop.onclick=()=>fileInput.click();
+fileInput.onchange=e=>{ if(e.target.files[0]) loadFile(e.target.files[0]); };
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('hot');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('hot');}));
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+window.addEventListener('paste',e=>{
+  const it=[...e.clipboardData.items].find(i=>i.type.startsWith('image/'));
+  if(it) loadFile(it.getAsFile());
+});
+function loadFile(f){
+  const r=new FileReader();
+  r.onload=()=>{ const im=new Image(); im.onload=()=>{img=im; sel={x:0,y:0,w:img.width,h:img.height}; bgSample=null; drawSrc(); regenerate();}; im.src=r.result; };
+  r.readAsDataURL(f);
+}
+function srcPt(e){
+  const c=$('src'), rect=c.getBoundingClientRect();
+  const x=(e.clientX-rect.left)/rect.width*c.width;
+  const y=(e.clientY-rect.top)/rect.height*c.height;
+  return {x,y};
+}
+function drawOverlay(ctx,s){ // s is in display (canvas) coordinates
+  if(!s) return;
+  const x=s.x, y=s.y, w=s.w, h=s.h;
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,0.35)';
+  ctx.fillRect(0,0,ctx.canvas.width,y);
+  ctx.fillRect(0,y+h,ctx.canvas.width,ctx.canvas.height-(y+h));
+  ctx.fillRect(0,y,x,h);
+  ctx.fillRect(x+w,y,ctx.canvas.width-(x+w),h);
+  ctx.strokeStyle='#3b6ef0'; ctx.lineWidth=2; ctx.setLineDash([5,3]);
+  ctx.strokeRect(x,y,w,h);
+  ctx.restore();
+}
+function selToDisplay(){
+  if(!sel) return null;
+  return {x:sel.x*dispScale, y:sel.y*dispScale, w:sel.w*dispScale, h:sel.h*dispScale};
+}
+function redrawSrc(){
+  const c=$('src'), ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.drawImage(img,0,0,c.width,c.height);
+  drawOverlay(ctx, dragSel || selToDisplay());
+}
+function drawSrc(){
+  const c=$('src'), ctx=c.getContext('2d');
+  const maxDim=480;
+  dispScale=Math.min(maxDim/img.width, maxDim/img.height);
+  dispW=Math.round(img.width*dispScale);
+  dispH=Math.round(img.height*dispScale);
+  c.width=dispW; c.height=dispH;
+  redrawSrc();
+  c.style.cursor = $('bgOn').checked ? 'crosshair':'default';
+}
+
+/* ============ Main pipeline ============ */
+function regenerate(){
+  if(!img) return;
+  loadPalette(document.querySelector('#palSeg .on').dataset.pal);
+
+  const grid = +$('grid').value;
+  const square = $('square').checked;
+
+  // Selected region (source pixel coords); when square, take the centered square
+  let sx=sel.x, sy=sel.y, sw=sel.w, sh=sel.h;
+  if(square){
+    const side=Math.min(sw,sh);
+    sx+=Math.floor((sw-side)/2); sy+=Math.floor((sh-side)/2); sw=side; sh=side;
+  }
+  // Compute the target grid (respecting the selection aspect ratio)
+  let gw, gh;
+  if(square){ gw=gh=grid; }
+  else if(sw>=sh){ gw=grid; gh=Math.max(1,Math.round(grid*sh/sw)); }
+  else { gh=grid; gw=Math.max(1,Math.round(grid*sw/sh)); }
+
+  // Downsample the selection onto the grid
+  const small=document.createElement('canvas'); small.width=gw; small.height=gh;
+  const sctx=small.getContext('2d');
+  sctx.imageSmoothingEnabled=true; sctx.imageSmoothingQuality='high';
+  sctx.drawImage(img, sx,sy,sw,sh, 0,0,gw,gh);
+  let data=sctx.getImageData(0,0,gw,gh).data;
+
+  // Brightness / contrast / saturation
+  const b=+$('bright').value, c=+$('contrast').value, s=+$('sat').value;
+  const cf=(259*(c+255))/(255*(259-c));
+  const satF=1+s/100;
+  const px=[];
+  for(let i=0;i<gw*gh;i++){
+    let r=data[i*4],g=data[i*4+1],bl=data[i*4+2],a=data[i*4+3];
+    if(a<128){ px.push(null); continue; } // Transparent in the source -> no bead
+    r=cf*(r-128)+128+b; g=cf*(g-128)+128+b; bl=cf*(bl-128)+128+b;
+    // Saturation
+    const gray=0.299*r+0.587*g+0.114*bl;
+    r=gray+(r-gray)*satF; g=gray+(g-gray)*satF; bl=gray+(bl-gray)*satF;
+    r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));bl=Math.max(0,Math.min(255,bl));
+    px.push([r,g,bl]);
+  }
+
+  // Background removal
+  const bgOn=$('bgOn').checked;
+  const tol=+$('bgTol').value;
+  const transparent=px.map(p=>{
+    if(!p) return true;
+    if(bgOn && bgSample){
+      const d=Math.hypot(p[0]-bgSample[0],p[1]-bgSample[1],p[2]-bgSample[2]);
+      if(d<=tol) return true;
+    }
+    return false;
+  });
+
+  // Map to the nearest palette color
+  const map=px.map((p,idx)=>{
+    if(transparent[idx]) return -1;
+    const lab=rgbToLab(p[0],p[1],p[2]);
+    let best=0,bd=Infinity;
+    for(let k=0;k<PAL.length;k++){ const d=dist2Lab(lab,PAL_LAB[k]); if(d<bd){bd=d;best=k;} }
+    return best;
+  });
+
+  // Color cap: greedily merge the least-used color into its nearest neighbour
+  const cap=+$('cap').value;
+  let used=new Set(map.filter(v=>v>=0));
+  function counts(){ const c=new Map(); map.forEach(v=>{ if(v>=0) c.set(v,(c.get(v)||0)+1); }); return c; }
+  let guard=0;
+  while(used.size>cap && guard++<200){
+    const c=counts();
+    let least=-1,lc=Infinity;
+    c.forEach((n,k)=>{ if(n<lc){lc=n;least=k;} });
+    if(least<0) break;
+    let near=-1,nd=Infinity;
+    used.forEach(k=>{ if(k===least) return; const d=dist2Lab(PAL_LAB[least],PAL_LAB[k]); if(d<nd){nd=d;near=k;} });
+    if(near<0) break;
+    for(let i=0;i<map.length;i++) if(map[i]===least) map[i]=near;
+    used.delete(least);
+  }
+
+  render(gw,gh,map,transparent);
+  renderCounts(map,transparent);
+}
+
+/* ============ Render preview ============ */
+function render(gw,gh,map,transparent){
+  const cv=$('preview'); const ctx=cv.getContext('2d');
+  const base=Math.max(600, gw*8);
+  const cell=Math.floor(base/Math.max(gw,gh));   // Uniform pixel size per bead, preserving the aspect ratio
+  const cw=cell, ch=cell;
+  cv.width=gw*cw; cv.height=gh*ch;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const gap=Math.max(1,Math.floor(Math.min(cw,ch)*0.12));
+  for(let y=0;y<gh;y++)for(let x=0;x<gw;x++){
+    const i=y*gw+x; const v=map[i];
+    const X=x*cw, Y=y*ch;
+    if(v<0){ continue; } // Transparent: keep the checkerboard background
+    const [r,g,b]=hexToRgb(PAL[v][1]);
+    roundBead(ctx,X+gap/2,Y+gap/2,cw-gap,ch-gap,Math.min(cw,ch)*0.18,[r,g,b]);
+  }
+}
+function roundBead(ctx,x,y,w,h,r,col){
+  ctx.save();
+  ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`;
+  const cx=x+w/2, cy=y+h/2;
+  const rad=Math.min(w,h)/2*0.94;
+  ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.22)';
+  ctx.beginPath();
+  ctx.ellipse(cx-rad*0.3,cy-rad*0.32,rad*0.42,rad*0.30,-0.5,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ============ Bead list ============ */
+function renderCounts(map,transparent){
+  const c=new Map();
+  map.forEach((v,i)=>{ if(v>=0) c.set(v,(c.get(v)||0)+1); });
+  const box=$('counts'); box.innerHTML='';
+  const sorted=[...c.entries()].sort((a,b)=>b[1]-a[1]);
+  let total=0;
+  for(const [v,n] of sorted){
+    total+=n;
+    const [name,h]=PAL[v];
+    const hex='#'+h.toString(16).padStart(6,'0');
+    const el=document.createElement('div'); el.className='chip';
+    el.innerHTML=`<span class="sw" style="background:${hex}"></span><span>${name}</span><span class="n">${n}</span>`;
+    box.appendChild(el);
+  }
+  const trans=transparent.filter(Boolean).length;
+  $('total').textContent=`${total} beads - ${sorted.length} colors${trans?` - ${trans} transparent cells`:''}`;
+}
+
+/* ============ Export ============ */
+$('exportBtn').onclick=()=>{
+  const cv=$('preview');
+  const a=document.createElement('a');
+  a.download='bead-pixel-preview.png';
+  a.href=cv.toDataURL('image/png');
+  a.click();
+};
+
+/* ============ Event bindings ============ */
+['grid','bright','contrast','sat','cap','bgTol'].forEach(id=>{
+  $(id).addEventListener('input',()=>{
+    $(id+'V').textContent=$(id).value;
+    regenerate();
+  });
+});
+$('square').addEventListener('change',regenerate);
+$('bgOn').addEventListener('change',()=>{ drawSrc(); });
+document.querySelectorAll('#palSeg button').forEach(b=>{
+  b.onclick=()=>{ document.querySelectorAll('#palSeg button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); regenerate(); };
+});
+// Source image: drag to select a region / click to sample the background when removal is on
+$('src').addEventListener('mousedown',e=>{
+  if(!img) return;
+  const p=srcPt(e);
+  dragStart=p; dragMoved=false; dragSel={x:p.x,y:p.y,w:0,h:0};
+});
+window.addEventListener('mousemove',e=>{
+  if(!dragStart) return;
+  const p=srcPt(e);
+  const dx=p.x-dragStart.x, dy=p.y-dragStart.y;
+  if(Math.abs(dx)>3||Math.abs(dy)>3) dragMoved=true;
+  dragSel={x:Math.min(dragStart.x,p.x),y:Math.min(dragStart.y,p.y),w:Math.abs(dx),h:Math.abs(dy)};
+  redrawSrc();
+});
+window.addEventListener('mouseup',e=>{
+  if(!dragStart) return;
+  if(dragMoved && dragSel && dragSel.w>4 && dragSel.h>4){
+    let x=dragSel.x/dispScale, y=dragSel.y/dispScale, w=dragSel.w/dispScale, h=dragSel.h/dispScale;
+    x=Math.max(0,Math.min(img.width-1,x)); y=Math.max(0,Math.min(img.height-1,y));
+    w=Math.min(w,img.width-x); h=Math.min(h,img.height-y);
+    sel={x:Math.round(x),y:Math.round(y),w:Math.max(1,Math.round(w)),h:Math.max(1,Math.round(h))};
+    regenerate();
+  } else if($('bgOn').checked){
+    const p=srcPt(e);
+    const px=Math.max(0,Math.min($('src').width-1,Math.round(p.x)));
+    const py=Math.max(0,Math.min($('src').height-1,Math.round(p.y)));
+    const d=$('src').getContext('2d').getImageData(px,py,1,1).data;
+    bgSample=[d[0],d[1],d[2]];
+    regenerate();
+  }
+  dragStart=null; dragSel=null; redrawSrc();
+});
+$('resetSel').onclick=()=>{ if(!img) return; sel={x:0,y:0,w:img.width,h:img.height}; regenerate(); };
+</script>
+</body>
+</html>

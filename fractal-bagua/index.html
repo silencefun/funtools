@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>64-Beat Bagua</title>
+<style>
+  :root{
+    --radius:12px; --radius-sm:8px;
+    --border-color:rgba(255,255,255,.14);
+    --text-primary:#eef1fb; --text-secondary:#98a3c0; --text-muted:#8b93ad;
+    --bg:#07070d; --panel-bg:rgba(14,16,28,.82);
+    --bg-card:rgba(20,22,38,.72); --bg-secondary:rgba(255,255,255,.05);
+    --accent-color:#7c5cff; --accent-purple:#a78bfa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text-primary);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;}
+  body{display:flex;flex-direction:column;}
+  input[type=range]{accent-color:#7dd3fc;}
+  button{font:inherit;cursor:pointer;}
+  .btn-primary,.btn-secondary{
+    border-radius:8px;border:1px solid var(--border-color);padding:6px 12px;
+    background:rgba(255,255,255,.06);color:var(--text-primary);}
+  .btn-primary{background:rgba(125,211,252,.16);border-color:rgba(125,211,252,.4);}
+  .btn-primary:hover,.btn-secondary:hover{background:rgba(255,255,255,.13);}
+
+.fb-wrap { position: relative; width: 100%; height: 520px; background: #0a0a1a; border-radius: var(--radius); overflow: hidden; }
+.fb-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.fb-panel { position: absolute; bottom: 12px; left: 12px; right: 12px; background: rgba(10,10,26,0.75); backdrop-filter: blur(10px); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 14px; z-index: 10; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem 1rem; align-items: end; }
+.fb-field { display: flex; flex-direction: column; gap: 0.3rem; }
+.fb-field label { font-size: 0.72rem; color: var(--text-secondary); font-weight: 600; display: flex; justify-content: space-between; }
+.fb-val { color: var(--accent-blue, #38bdf8); font-variant-numeric: tabular-nums; }
+.fb-field input[type="range"] { width: 100%; accent-color: #38bdf8; cursor: pointer; }
+.fb-field select { width: 100%; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.35rem 0.5rem; font-size: 0.8rem; outline: none; cursor: pointer; }
+.fb-btns { display: flex; gap: 0.5rem; }
+.fb-btns button { flex: 1; white-space: nowrap; }
+.fb-wrap.is-fs { width: 100vw; height: 100vh; border-radius: 0; }
+.fb-wrap.is-fs .fb-canvas { height: 100%; }
+.fb-wrap.is-fs .fb-panel { display: none; }
+@media (max-width: 640px) { .fb-wrap { height: 360px; } .fb-panel { grid-template-columns: 1fr 1fr; } }
+</style>
+<style>fb-wrap{height:100vh!important;width:100vw!important;border-radius:0!important;}fb-wrap canvas{width:100%!important;height:100%!important;display:block;}</style>
+</head>
+<body>
+<div class="fb-wrap">
+  <canvas id="fb-canvas" class="fb-canvas"></canvas>
+  <div class="fb-panel">
+    <div class="fb-field">
+      <label for="fb-depth">Iteration Depth <span class="fb-val" id="fb-depth-val">4</span></label>
+      <input type="range" id="fb-depth" min="1" max="6" step="1" value="4" />
+    </div>
+    <div class="fb-field">
+      <label for="fb-speed">Rotation Speed <span class="fb-val" id="fb-speed-val">5</span></label>
+      <input type="range" id="fb-speed" min="0" max="20" step="1" value="5" />
+    </div>
+    <div class="fb-field">
+      <label for="fb-scheme">Color Scheme</label>
+      <select id="fb-scheme">
+        <option value="classic">Classic B/W</option>
+        <option value="gold">Gold Ink</option>
+        <option value="jade">Jade</option>
+        <option value="solar">Solar</option>
+        <option value="neon">Neon</option>
+      </select>
+    </div>
+    <div class="fb-btns">
+      <button class="btn-primary" id="fb-pause">Pause</button>
+      <button class="btn-secondary" id="fb-fullscreen">Fullscreen</button>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  const canvas = document.getElementById('fb-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const wrap = canvas.closest('.fb-wrap');
+  let W, H, dpr;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = wrap.getBoundingClientRect();
+    W = Math.floor(rect.width); H = Math.floor(rect.height);
+    canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const fsBtn = document.getElementById('fb-fullscreen');
+  if (fsBtn) fsBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) wrap.requestFullscreen().catch(() => {});
+    else document.exitFullscreen();
+  });
+  document.addEventListener('fullscreenchange', () => { setTimeout(resize, 150); });
+
+  const palettes = {
+    classic: { yin: '#f8f8f2', yang: '#1a1a2e', ring: '#c9a227', bg1: '#0a0a1a', bg2: '#15152e' },
+    gold:    { yin: '#ffe8a3', yang: '#3a2a0a', ring: '#ffd700', bg1: '#1a1206', bg2: '#2e2010' },
+    jade:    { yin: '#d6f5e6', yang: '#064e3b', ring: '#34d399', bg1: '#04221a', bg2: '#0a2e22' },
+    solar:   { yin: '#fff1c1', yang: '#7c2d12', ring: '#f97316', bg1: '#1a0a06', bg2: '#2e1206' },
+    neon:    { yin: '#22d3ee', yang: '#0f0a1f', ring: '#f472b6', bg1: '#06060f', bg2: '#0f0a1f' }
+  };
+
+  // Eight trigrams (bottom->top), 1 = solid (yang), 0 = broken (yin)
+  const trigrams = [
+    [1,1,1], // Qian heaven
+    [0,1,1], // Dui lake
+    [1,0,1], // Li fire
+    [0,0,1], // Zhen thunder
+    [1,1,0], // Xun wind
+    [0,1,0], // Kan water
+    [1,0,0], // Gen mountain
+    [0,0,0]  // Kun earth
+  ];
+
+  let depth = 4;
+  let rotSpeed = 5;
+  let scheme = 'classic';
+  let paused = false;
+  let rafId = null;
+  let angle = 0;
+  let lastTime = performance.now();
+
+  function drawTrigram(cx, cy, r, lines, pal) {
+    const barW = r * 1.4;
+    const gap = r * 0.32;
+    const barH = r * 0.34;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = pal.ring;
+    for (let i = 0; i < 3; i++) {
+      const y = (i - 1) * gap;
+      if (lines[i] === 1) {
+        ctx.fillRect(-barW / 2, y - barH / 2, barW, barH);
+      } else {
+        const half = barW / 2 - gap * 0.6;
+        ctx.fillRect(-barW / 2, y - barH / 2, half, barH);
+        ctx.fillRect(gap * 0.6, y - barH / 2, half, barH);
+      }
+    }
+    ctx.restore();
+  }
+
+  // recursive taiji (yin-yang). Eyes recursively contain smaller taiji.
+  function drawTaiji(cx, cy, R, rot, d, pal) {
+    if (R < 1.5 || d < 0) return;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
+
+    // outer circle outline
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+
+    // fill yang half (top) then yin half via S curve
+    // Right half yang, left half yin
+    ctx.fillStyle = pal.yang;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2, false);
+    ctx.arc(0, R / 2, R / 2, Math.PI / 2, -Math.PI / 2, true);
+    ctx.arc(0, -R / 2, R / 2, Math.PI / 2, -Math.PI / 2, false);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = pal.yin;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, Math.PI / 2, -Math.PI / 2, false);
+    ctx.arc(0, -R / 2, R / 2, -Math.PI / 2, Math.PI / 2, true);
+    ctx.arc(0, R / 2, R / 2, -Math.PI / 2, Math.PI / 2, false);
+    ctx.closePath();
+    ctx.fill();
+
+    // ring
+    ctx.strokeStyle = pal.ring;
+    ctx.lineWidth = Math.max(1, R * 0.04);
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // recursive eyes
+    drawTaiji(0, -R / 2, R / 4, -rot, d - 1, pal);
+    drawTaiji(0, R / 2, R / 4, -rot, d - 1, pal);
+
+    ctx.restore();
+  }
+
+  function draw() {
+    const pal = palettes[scheme];
+    // background
+    const bg = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, Math.max(W, H) * 0.7);
+    bg.addColorStop(0, pal.bg2);
+    bg.addColorStop(1, pal.bg1);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    const cx = W / 2, cy = H / 2;
+    const baseR = Math.min(W, H) * 0.34;
+
+    // outer ring
+    ctx.strokeStyle = pal.ring;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, baseR * 1.42, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx, cy, baseR * 1.55, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 8 trigrams around the ring
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+      const tx = cx + Math.cos(a) * baseR * 1.48;
+      const ty = cy + Math.sin(a) * baseR * 1.48;
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(a + Math.PI / 2);
+      drawTrigram(0, 0, baseR * 0.13, trigrams[i], pal);
+      ctx.restore();
+    }
+
+    // central fractal taiji
+    drawTaiji(cx, cy, baseR, angle, depth, pal);
+
+    // HUD
+    ctx.fillStyle = 'rgba(200,210,255,0.4)';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('depth ' + depth, 10, 18);
+  }
+
+  function step(now) {
+    rafId = requestAnimationFrame(step);
+    if (paused) { lastTime = now; return; }
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+    angle += dt * (rotSpeed / 5) * 0.5;
+    draw();
+  }
+
+  const elDepth = document.getElementById('fb-depth');
+  const elDepthVal = document.getElementById('fb-depth-val');
+  const elSpeed = document.getElementById('fb-speed');
+  const elSpeedVal = document.getElementById('fb-speed-val');
+  const elScheme = document.getElementById('fb-scheme');
+  const elPause = document.getElementById('fb-pause');
+
+  if (elDepth) elDepth.addEventListener('input', (e) => { depth = parseInt(e.target.value); elDepthVal.textContent = depth; });
+  if (elSpeed) elSpeed.addEventListener('input', (e) => { rotSpeed = parseInt(e.target.value); elSpeedVal.textContent = rotSpeed; });
+  if (elScheme) elScheme.addEventListener('change', (e) => { scheme = e.target.value; });
+  if (elPause) elPause.addEventListener('click', () => {
+    paused = !paused;
+    elPause.textContent = paused ? ("Resume") : ("Pause");
+  });
+
+  document.addEventListener('visibilitychange', () => { paused = document.hidden; });
+
+  rafId = requestAnimationFrame(step);
+})();
+</script>
+<script>(function(){var r=document.querySelector('.fb-wrap');if(r)r.classList.add('is-fs');})();</script>
+</body>
+</html>

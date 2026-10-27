@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>One Second Challenge</title>
+<style>
+  :root{
+    --radius:12px; --radius-sm:8px;
+    --border-color:rgba(255,255,255,.14);
+    --text-primary:#eef1fb; --text-secondary:#98a3c0; --text-muted:#8b93ad;
+    --bg:#07070d; --panel-bg:rgba(14,16,28,.82);
+    --bg-card:rgba(20,22,38,.72); --bg-secondary:rgba(255,255,255,.05);
+    --accent-color:#7c5cff; --accent-purple:#a78bfa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text-primary);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;}
+  body{display:flex;flex-direction:column;}
+  input[type=range]{accent-color:#7dd3fc;}
+  button{font:inherit;cursor:pointer;}
+  .btn-primary,.btn-secondary{
+    border-radius:8px;border:1px solid var(--border-color);padding:6px 12px;
+    background:rgba(255,255,255,.06);color:var(--text-primary);}
+  .btn-primary{background:rgba(125,211,252,.16);border-color:rgba(125,211,252,.4);}
+  .btn-primary:hover,.btn-secondary:hover{background:rgba(255,255,255,.13);}
+
+  .osc-shell {
+    --osc-scale: 1;
+    --osc-bg: #f7f7f8;
+    --osc-card: #ffffff;
+    --osc-border: #e3e5e8;
+    --osc-fg: #1b1f24;
+    --osc-muted: #6b7280;
+    --osc-accent: #185fa5;
+    --osc-accent-soft: #e6f1fb;
+    --osc-warn: #ba7517;
+    --osc-chip: #f1efe8;
+    --osc-fs-bg: #0d1117;
+    --osc-fs-fg: #e6edf3;
+    --osc-fs-dim: #8b949e;
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--osc-card);
+    border: 1px solid var(--osc-border);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--osc-fg);
+    font-size: 14px;
+    line-height: 1.6;
+    box-sizing: border-box;
+  }
+  @media (prefers-color-scheme: dark) {
+    .osc-shell {
+      --osc-bg: #0d1117;
+      --osc-card: #161b22;
+      --osc-border: #2a313c;
+      --osc-fg: #e6edf3;
+      --osc-muted: #8b949e;
+      --osc-accent: #78b8f0;
+      --osc-accent-soft: #16283a;
+      --osc-chip: #21262d;
+    }
+  }
+  .osc-shell *, .osc-shell *::before, .osc-shell *::after { box-sizing: border-box; }
+
+  .osc-head { display: flex; align-items: center; gap: 8px; }
+  .osc-hint { font-size: 12px; color: var(--osc-muted); }
+  .osc-head .osc-btn-tiny:first-of-type { margin-left: auto; }
+
+  .osc-btn {
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 9px;
+    border: 1px solid var(--osc-border);
+    background: var(--osc-card);
+    color: var(--osc-fg);
+    padding: 7px 12px;
+    transition: background .15s, border-color .15s, opacity .2s;
+  }
+  .osc-btn:hover { border-color: var(--osc-accent); }
+  .osc-btn:active { transform: translateY(1px); }
+  .osc-btn-primary { background: var(--osc-accent-soft); border-color: var(--osc-accent); color: var(--osc-accent); font-weight: 500; }
+  .osc-btn-tiny { padding: 4px 9px; font-size: 12px; border-radius: 7px; }
+
+  .osc-panel { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px; background: var(--osc-chip); border-radius: 11px; }
+  .osc-lbl { font-size: 12px; color: var(--osc-muted); margin-right: 2px; }
+  .osc-panel select {
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--osc-border);
+    background: var(--osc-card);
+    color: var(--osc-fg);
+    font-size: 13px;
+    font-family: inherit;
+  }
+
+  .osc-custom { margin-top: 10px; padding: 10px; border: 1px dashed var(--osc-border); border-radius: 11px; background: var(--osc-card); }
+  .osc-custom-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .osc-chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .osc-chip {
+    font-family: inherit;
+    cursor: pointer;
+    padding: 4px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--osc-border);
+    background: var(--osc-card);
+    color: var(--osc-fg);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .osc-kp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 10px 0; }
+  .osc-kp button {
+    font-family: inherit;
+    cursor: pointer;
+    padding: 9px 0;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid var(--osc-border);
+    border-radius: 9px;
+    background: var(--osc-card);
+    color: var(--osc-fg);
+  }
+  .osc-sectext {
+    width: 150px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--osc-border);
+    background: var(--osc-card);
+    color: var(--osc-fg);
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 15px;
+    text-align: center;
+  }
+
+  .osc-seg { display: inline-flex; border: 1px solid var(--osc-border); border-radius: 9px; overflow: hidden; }
+  .osc-seg button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 0;
+    padding: 5px 11px;
+    font-size: 12px;
+    background: transparent;
+    color: var(--osc-fg);
+  }
+  .osc-seg button.on { background: var(--osc-accent-soft); color: var(--osc-accent); }
+
+  .osc-stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    padding: 14px;
+    background: var(--osc-card);
+    border: 1px solid var(--osc-border);
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    overflow: hidden;
+  }
+  .osc-numeral {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: calc(52px * var(--osc-scale));
+    font-weight: 600;
+    color: var(--osc-accent);
+    line-height: 1.05;
+    transition: color .12s;
+  }
+  .osc-numeral.osc-vertical { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: .06em; }
+  .osc-stage-sub { font-size: calc(12px * var(--osc-scale)); color: var(--osc-muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .osc-ring { width: calc(96px * var(--osc-scale)); height: calc(96px * var(--osc-scale)); margin-bottom: 6px; }
+  .osc-ring circle { fill: none; stroke-width: 6; stroke-linecap: round; }
+  .osc-ring-bg { stroke: var(--osc-border); }
+  .osc-ring-fg { stroke: var(--osc-accent); transition: stroke .18s; }
+  .osc-ring.osc-hit .osc-ring-fg { stroke: #3b6d11; }
+  .osc-ring-tick { stroke: var(--osc-muted); stroke-width: 4; }
+
+  .osc-res { text-align: center; }
+  .osc-res-diff {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: calc(26px * var(--osc-scale));
+    font-weight: 600;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .osc-res-diff.osc-gold, .osc-res-diff.osc-bronze { color: var(--osc-warn); }
+  .osc-res-diff.osc-silver { color: var(--osc-muted); }
+  .osc-badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--osc-border); margin-left: 8px; }
+  .osc-badge.osc-gold, .osc-badge.osc-bronze { color: var(--osc-warn); border-color: var(--osc-warn); }
+  .osc-badge.osc-silver { color: var(--osc-muted); }
+
+  .osc-guide {
+    margin-top: 8px;
+    padding: 7px 12px;
+    background: var(--osc-accent-soft);
+    color: var(--osc-accent);
+    border-radius: 10px;
+    font-size: 12.5px;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .osc-bar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; transition: opacity .3s; }
+  .osc-bar.osc-dim { opacity: .16; }
+
+  .osc-sets { border-top: 1px solid var(--osc-border); padding-top: 10px; display: flex; flex-direction: column; gap: 9px; }
+  .osc-setrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .osc-setrow .osc-k { font-size: 12px; color: var(--osc-muted); min-width: 74px; }
+  .osc-setrow input[type='range'] { flex: 1; min-width: 120px; }
+  .osc-spacer { margin-left: auto; }
+  .osc-sw {
+    width: 40px;
+    height: 22px;
+    border-radius: 999px;
+    background: var(--osc-border);
+    position: relative;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .osc-sw::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left .15s;
+  }
+  .osc-sw.on { background: var(--osc-accent); }
+  .osc-sw.on::after { left: 20px; }
+
+  .osc-stats { display: flex; gap: 10px; justify-content: space-between; text-align: center; font-variant-numeric: tabular-nums; }
+  .osc-stats > div { flex: 1; }
+  .osc-stats .osc-v { font-size: 19px; font-weight: 500; }
+  .osc-stats .osc-l { font-size: 11px; color: var(--osc-muted); }
+  .osc-recs { display: flex; flex-direction: column; gap: 4px; max-height: 210px; overflow-y: auto; }
+  .osc-rec {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 9px;
+    border-radius: 8px;
+    background: var(--osc-chip);
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+  .osc-rec .osc-n { color: var(--osc-muted); min-width: 26px; }
+  .osc-rec .osc-t { min-width: 70px; }
+  .osc-rec .osc-d { margin-left: auto; font-weight: 500; }
+  .osc-rec .osc-d.osc-gold, .osc-rec .osc-d.osc-bronze { color: var(--osc-warn); }
+  .osc-rec .osc-d.osc-silver { color: var(--osc-muted); }
+  .osc-recs-empty { font-size: 12px; color: var(--osc-muted); text-align: center; padding: 8px; }
+
+  /* 全屏：position:fixed 兜底 + 原生 .is-fs 双保险 */
+  .osc-shell.osc-is-fs {
+    position: fixed;
+    inset: 0;
+    z-index: 99998;
+    max-width: none;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: var(--osc-fs-bg);
+    color: var(--osc-fs-fg);
+    padding: 18px;
+    gap: 14px;
+    overflow: auto;
+  }
+  .osc-shell.osc-is-fs .osc-head, .osc-shell.osc-is-fs .osc-panel,
+  .osc-shell.osc-is-fs .osc-sets, .osc-shell.osc-is-fs .osc-stage,
+  .osc-shell.osc-is-fs .osc-stats, .osc-shell.osc-is-fs .osc-rec,
+  .osc-shell.osc-is-fs .osc-recs-empty { border-color: #2a313c; background: transparent; }
+  .osc-shell.osc-is-fs .osc-hint, .osc-shell.osc-is-fs .osc-setrow .osc-k,
+  .osc-shell.osc-is-fs .osc-stats .osc-l { color: var(--osc-fs-dim); }
+  .osc-shell.osc-is-fs .osc-numeral { color: #e6edf3; font-size: calc(30vh * var(--osc-scale)); }
+  .osc-shell.osc-is-fs .osc-ring { width: calc(20vh * var(--osc-scale)); height: calc(20vh * var(--osc-scale)); }
+  .osc-shell.osc-is-fs .osc-ring-bg { stroke: #2a313c; }
+  .osc-shell.osc-is-fs .osc-ring-tick { stroke: #8b949e; }
+  .osc-shell.osc-is-fs .osc-rec { background: #161b22; }
+  .osc-shell.osc-is-fs .osc-head .osc-title, .osc-shell.osc-is-fs .osc-head { color: var(--osc-fs-fg); }
+  .osc-shell.osc-is-fs .osc-btn { background: #161b22; color: var(--osc-fs-fg); border-color: #2a313c; }
+  .osc-shell.osc-is-fs .osc-btn-primary { background: #16283a; border-color: var(--osc-accent); color: var(--osc-accent); }
+  .osc-shell.osc-is-fs .osc-stage { flex: 1; min-height: 0; border-color: #2a313c; }
+  .osc-shell.osc-is-fs.osc-landscape {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas: 'hd side' 'stage side' 'bar side';
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .osc-shell.osc-is-fs.osc-landscape .osc-head { grid-area: hd; }
+  .osc-shell.osc-is-fs.osc-landscape .osc-stage { grid-area: stage; min-height: 0; }
+  .osc-shell.osc-is-fs.osc-landscape .osc-bar { grid-area: bar; align-self: end; }
+  .osc-shell.osc-is-fs.osc-landscape .osc-sidewrap { grid-area: side; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; min-height: 0; }
+  .osc-sidewrap { display: contents; }
+
+  /* 原生全屏时也保持上面的壳样式 */
+  .osc-shell.is-fs { background: var(--osc-fs-bg); color: var(--osc-fs-fg); }
+  .osc-shell.is-fs .osc-numeral { color: #e6edf3; }
+</style>
+<style>osc-shell{height:100vh!important;width:100vw!important;border-radius:0!important;}osc-shell canvas{width:100%!important;height:100%!important;display:block;}</style>
+</head>
+<body>
+<div class="osc-shell" id="osc-shell" data-lang=en>
+  <div class="osc-head">
+    <span class="osc-hint">Tap Start, then tap Stop - can you hit 1.000 seconds?</span>
+    <button class="osc-btn-tiny" id="osc-btn-fill" type="button">Full</button>
+    <button class="osc-btn-tiny" id="osc-btn-fs" type="button">Fullscreen</button>
+  </div>
+
+  <div class="osc-panel">
+    <span class="osc-lbl">Target time</span>
+    <select id="osc-sel-target" aria-label=Target time>
+      <option value="1000">1.000 s</option>
+      <option value="2000">2.000 s</option>
+      <option value="3000">3.000 s</option>
+      <option value="5000">5.000 s</option>
+      <option value="8000">8.000 s</option>
+      <option value="10000">10.000 s</option>
+      <option value="custom">Custom…</option>
+    </select>
+    <span class="osc-hint" id="osc-cur-target">1.000 s</span>
+  </div>
+
+  <div class="osc-custom" id="osc-custom-box" hidden>
+    <div class="osc-chips">
+      <button class="osc-chip" type="button" data-preset="1314">1.314</button>
+      <button class="osc-chip" type="button" data-preset="1520">1.520</button>
+      <button class="osc-chip" type="button" data-preset="618">0.618</button>
+      <button class="osc-chip" type="button" data-preset="5200">5.200</button>
+    </div>
+    <div class="osc-custom-row">
+      <input class="osc-sectext" id="osc-cust-text" value="1.314" inputmode="decimal"
+        placeholder="s / ms" aria-label=Target time />
+      <span class="osc-hint" id="osc-cust-hint">= 1314 ms</span>
+    </div>
+    <div class="osc-kp" id="osc-kp"></div>
+    <div class="osc-custom-row">
+      <button class="osc-btn-tiny" id="osc-cust-cancel" type="button">Cancel</button>
+      <button class="osc-btn-tiny osc-btn-primary" id="osc-cust-ok" type="button">OK</button>
+    </div>
+  </div>
+
+  <div class="osc-stage" id="osc-stage" role="button" tabindex="0"
+    aria-label=Tap anywhere to stop>
+    <div class="osc-res" id="osc-res-block" hidden>
+      <div class="osc-hint" id="osc-res-label">Deviation</div>
+      <div class="osc-res-diff" id="osc-res-diff">+47 ms</div>
+      <span class="osc-badge osc-badge-silver" id="osc-res-badge">Bronze</span>
+    </div>
+    <svg class="osc-ring" id="osc-ring" viewBox="0 0 120 120" aria-hidden="true">
+      <circle class="osc-ring-bg" cx="60" cy="60" r="52"></circle>
+      <circle class="osc-ring-fg" id="osc-ring-fg" cx="60" cy="60" r="52"
+        transform="rotate(-90 60 60)" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
+      <g id="osc-ring-tick" transform="rotate(240 60 60)">
+        <line class="osc-ring-tick" x1="60" y1="4" x2="60" y2="17"></line>
+      </g>
+    </svg>
+    <div class="osc-numeral" id="osc-numeral">0.000</div>
+    <div class="osc-stage-sub" id="osc-stage-sub">1.000 s</div>
+    <div class="osc-guide" id="osc-guide">Tap Start, then tap Stop - can you hit 1.000 seconds?</div>
+  </div>
+
+  <div class="osc-bar" id="osc-bar">
+    <button class="osc-btn-primary" id="osc-btn-main" type="button">Start</button>
+    <button class="osc-btn" id="osc-btn-reset" type="button">Reset</button>
+    <button class="osc-btn" id="osc-btn-undo" type="button">Undo last</button>
+    <button class="osc-btn" id="osc-btn-clear" type="button">Clear records (0)</button>
+    <button class="osc-btn" id="osc-btn-share" type="button">Copy result</button>
+  </div>
+
+  <div class="osc-sidewrap">
+    <div class="osc-sets">
+      <div class="osc-setrow"><span class="osc-k">Display while running</span>
+        <span class="osc-seg" id="osc-seg-mode">
+          <button type="button" data-v="stopwatch" class="on">Stopwatch (real timing)</button>
+          <button type="button" data-v="jumble">Jumble (random numbers)</button>
+          <button type="button" data-v="hidden">Hidden (progress only)</button>
+        </span>
+      </div>
+      <div class="osc-setrow"><span class="osc-k">Tolerance</span>
+        <span class="osc-seg" id="osc-seg-tol">
+          <button type="button" data-v="100" class="on">100ms</button>
+          <button type="button" data-v="200">200ms</button>
+          <button type="button" data-v="300">300ms</button>
+        </span>
+      </div>
+      <div class="osc-setrow"><span class="osc-k">Font size</span>
+        <input type="range" id="osc-rng-scale" min="0.8" max="2" step="0.05" value="1" />
+        <span class="osc-hint" id="osc-scale-label">1.00×</span>
+      </div>
+      <div class="osc-setrow"><span class="osc-k">Layout</span>
+        <span class="osc-seg" id="osc-seg-orient">
+          <button type="button" data-v="auto" class="on">Auto</button>
+          <button type="button" data-v="portrait">Force portrait</button>
+          <button type="button" data-v="landscape">Force landscape</button>
+        </span>
+      </div>
+      <div class="osc-setrow"><span class="osc-k">Vertical digits</span>
+        <span class="osc-seg" id="osc-seg-numdir">
+          <button type="button" data-v="h" class="on">H</button>
+          <button type="button" data-v="v">V</button>
+        </span>
+        <span class="osc-spacer"></span>
+        <button class="osc-sw on" id="osc-sw-sound" type="button" title=Sound></button>
+        <span class="osc-hint">Sound</span>
+        <button class="osc-sw on" id="osc-sw-vibe" type="button" title=Vibrate></button>
+        <span class="osc-hint">Vibrate</span>
+        <button class="osc-sw on" id="osc-sw-hide" type="button" title=Auto-hide controls></button>
+        <span class="osc-hint">Auto-hide controls</span>
+      </div>
+    </div>
+
+    <div class="osc-stats">
+      <div><div class="osc-v" id="osc-st-count">0</div><div class="osc-l">Runs</div></div>
+      <div><div class="osc-v" id="osc-st-avg">--</div><div class="osc-l">Avg. deviation</div></div>
+      <div><div class="osc-v" id="osc-st-best">--</div><div class="osc-l">Best</div></div>
+    </div>
+
+    <div class="osc-recs" id="osc-recs"></div>
+  </div>
+</div>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var shell = $('osc-shell');
+  if (!shell) return;
+
+  var stage = $('osc-stage'), numeral = $('osc-numeral'), sub = $('osc-stage-sub'),
+    ring = $('osc-ring'), ringFg = $('osc-ring-fg'), tick = $('osc-ring-tick'),
+    btnMain = $('osc-btn-main'), recsEl = $('osc-recs'), barEl = $('osc-bar');
+
+  var CKEY = 'osc_cfg_v1', RKEY = 'osc_recs_v1', GKEY = 'osc_guide_v1';
+  var cfg = { targetMs: 1000, mode: 'stopwatch', tol: 100, scale: 1, orient: 'auto', numeralDir: 'h', sound: true, vibrate: true, autoHide: true };
+  var recs = [];
+  var phase = 'idle', t0 = 0, raf = 0, chaosT = 0, armedAt = 0, lastStopAt = 0, buf = '', guided = false;
+  var RINGC = 326.7;
+
+  try { var c = JSON.parse(localStorage.getItem(CKEY) || 'null'); if (c) for (var k in cfg) if (k in c) cfg[k] = c[k]; } catch (e) {}
+  try { var r = JSON.parse(localStorage.getItem(RKEY) || 'null'); if (r && r.length) recs = r; } catch (e) {}
+  try { guided = localStorage.getItem(GKEY) === '1'; } catch (e) {}
+
+  function saveCfg() { try { localStorage.setItem(CKEY, JSON.stringify(cfg)); } catch (e) {} }
+  function saveRecs() { try { localStorage.setItem(RKEY, JSON.stringify(recs.slice(-50))); } catch (e) {} }
+  function toast(msg) {
+    var t = $('osc-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'osc-toast';
+      t.style.cssText = 'position:fixed;left:50%;bottom:34px;transform:translateX(-50%);background:#1b1f24;color:#fff;padding:8px 14px;border-radius:9px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99999';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '.95';
+    clearTimeout(t._tm);
+    t._tm = setTimeout(function () { t.style.opacity = '0'; }, 1600);
+  }
+
+  function sec(ms) { return (ms / 1000).toFixed(3); }
+  function gradeOf(a) { return a <= cfg.tol / 3 ? 'gold' : (a <= cfg.tol ? 'silver' : 'bronze'); }
+  var GN = { gold: "Gold", silver: "Silver", bronze: "Bronze" };
+
+  function beep(f, d) {
+    if (!cfg.sound) return;
+    try {
+      var a = window.AudioContext || window.webkitAudioContext; if (!a) return;
+      var ctx = new a(), o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f; g.gain.value = .05;
+      o.connect(g); g.connect(ctx.destination);
+      var t = ctx.currentTime; o.start(t);
+      g.gain.exponentialRampToValueAtTime(.0001, t + (d || .07)); o.stop(t + (d || .07));
+    } catch (e) {}
+  }
+  function vibe(p) { if (!cfg.vibrate) return; try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+
+  function setRing(ms) {
+    var span = cfg.targetMs * 1.5;
+    var p = Math.max(0, Math.min(1, ms / span));
+    ringFg.setAttribute('stroke-dashoffset', String(RINGC * (1 - p)));
+    var ang = Math.round(360 * (cfg.targetMs / span));
+    tick.setAttribute('transform', 'rotate(' + ang + ' 60 60)');
+    if (ms >= cfg.targetMs) ring.classList.add('osc-hit'); else ring.classList.remove('osc-hit');
+  }
+
+  function renderIdle() {
+    numeral.textContent = '0.000';
+    setRing(0);
+    sub.textContent = sec(cfg.targetMs) + ' s';
+    $('osc-res-block').hidden = true;
+    $('osc-res-diff').textContent = '';
+    $('osc-res-badge').textContent = '';
+    btnMain.textContent = "Start";
+  }
+  function renderStatic() {
+    $('osc-cur-target').textContent = sec(cfg.targetMs) + ' s';
+    sub.textContent = '目标 ' + sec(cfg.targetMs) + ' s';
+    shell.style.setProperty('--osc-scale', String(cfg.scale));
+    $('osc-scale-label').textContent = cfg.scale.toFixed(2) + '×';
+    numeral.classList.toggle('osc-vertical', cfg.numeralDir === 'v');
+    layoutCalc();
+  }
+
+  function start() {
+    if (phase === 'running') return;
+    if (phase === 'done') { if (performance.now() - lastStopAt < 200) return; }
+    if (phase === 'done') renderIdle();
+    phase = 'running'; t0 = performance.now(); armedAt = performance.now() + 100;
+    $('osc-res-block').hidden = true;
+    btnMain.textContent = "Stop";
+    beep(880); vibe(18);
+    if (cfg.mode === 'jumble') chaosT = setInterval(chaos, 70); else loop();
+  }
+  function loop() {
+    if (phase !== 'running') return;
+    renderStage(performance.now() - t0);
+    raf = requestAnimationFrame(loop);
+  }
+  function chaos() {
+    if (phase !== 'running') return;
+    var v = cfg.targetMs * (0.5 + Math.random() * 1.2);
+    numeral.textContent = (v / 1000).toFixed(3);
+    setRing(v);
+  }
+  function renderStage(ms) {
+    if (cfg.mode === 'hidden') numeral.textContent = '—';
+    else numeral.textContent = sec(ms);
+    setRing(ms);
+  }
+
+  function stop() {
+    if (phase !== 'running') return;
+    if (performance.now() < armedAt) { toast("Too soon — slow down a touch"); return; }
+    cancelAnimationFrame(raf); clearInterval(chaosT);
+    var ms = performance.now() - t0, diff = ms - cfg.targetMs, a = Math.abs(diff), g = gradeOf(a);
+    phase = 'done'; lastStopAt = performance.now();
+    recs.push({ ms: Math.round(ms), t: cfg.targetMs, d: Math.round(diff), g: g });
+    if (recs.length > 50) recs.shift();
+    saveRecs(); renderRecs();
+    numeral.textContent = sec(ms);
+    var rd = $('osc-res-diff');
+    rd.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(0) + ' ms';
+    rd.className = 'osc-res-diff osc-' + g;
+    var bg = $('osc-res-badge');
+    bg.textContent = GN[g];
+    bg.className = 'osc-badge osc-' + g;
+    $('osc-res-block').hidden = false;
+    sub.textContent = "Measured" + ' ' + sec(ms) + ' s';
+    btnMain.textContent = "Again";
+    beep(g === 'gold' ? 1180 : 660);
+    vibe(g === 'gold' ? [20, 40, 20] : [20]);
+  }
+  function toggle() { if (phase === 'running') stop(); else start(); }
+
+  function renderRecs() {
+    recsEl.innerHTML = '';
+    $('osc-st-count').textContent = String(recs.length);
+    if (recs.length) {
+      var sum = 0, best = recs[0];
+      recs.forEach(function (x) { sum += Math.abs(x.d); if (Math.abs(x.d) < Math.abs(best.d)) best = x; });
+      $('osc-st-avg').textContent = Math.round(sum / recs.length) + ' ms';
+      $('osc-st-best').textContent = (best.d >= 0 ? '+' : '') + best.d + ' ms';
+    } else { $('osc-st-avg').textContent = '--'; $('osc-st-best').textContent = '--'; }
+    $('osc-btn-clear').textContent = "Clear records" + ' (' + recs.length + ')';
+    for (var i = recs.length - 1; i >= 0; i--) {
+      var x = recs[i];
+      var d = document.createElement('div');
+      d.className = 'osc-rec';
+      d.innerHTML = '<span class="osc-n">#' + (i + 1) + '</span><span class="osc-t">' + sec(x.ms) + ' s</span>' +
+        '<span class="osc-d osc-' + x.g + '">' + (x.d >= 0 ? '+' : '') + x.d + ' ms</span>';
+      recsEl.appendChild(d);
+    }
+    if (!recs.length) {
+      var e = document.createElement('div');
+      e.className = 'osc-recs-empty';
+      e.textContent = "No records yet — tap Start";
+      recsEl.appendChild(e);
+    }
+  }
+
+  function resetCurrent() {
+    if (phase === 'running') { cancelAnimationFrame(raf); clearInterval(chaosT); }
+    phase = 'idle'; renderIdle(); beep(420);
+  }
+  function undo() {
+    if (!recs.length) { toast("Nothing to undo"); return; }
+    recs.pop(); saveRecs(); renderRecs(); toast("Last record undone");
+  }
+  function clearRecs() {
+    if (!recs.length) { toast("Records are already empty"); return; }
+    if (!window.confirm("Clear all records?" + ' ' + recs.length + '?')); return;
+    recs = []; saveRecs(); renderRecs(); toast("Cleared");
+  }
+
+  function parseMs(s) {
+    s = String(s).trim();
+    if (!s) return null;
+    var v = s.indexOf('.') >= 0 ? parseFloat(s) * 1000 : parseFloat(s);
+    if (isNaN(v)) return null;
+    v = Math.round(v);
+    return (v < 100 || v > 60000) ? null : v;
+  }
+  function setTarget(v, silent) {
+    cfg.targetMs = v; saveCfg(); renderStatic(); renderIdle();
+    $('osc-sel-target').value = [1000, 2000, 3000, 5000, 8000, 10000].indexOf(v) >= 0 ? String(v) : 'custom';
+    if (!silent) toast('目标 = ' + sec(v) + ' s');
+  }
+  function openCustom(open) {
+    $('osc-custom-box').hidden = !open;
+    if (open) { buf = String(cfg.targetMs / 1000); $('osc-cust-text').value = buf; updCust(); }
+  }
+  function updCust() {
+    $('osc-cust-hint').textContent = '= ' + (cfg.targetMs >= 1000 ? sec(cfg.targetMs) + ' s' : cfg.targetMs) + ' ms';
+  }
+
+  function setFs(on) {
+    shell.classList.toggle('osc-is-fs', on);
+    $('osc-btn-fs').textContent = on ? "Exit fullscreen" : "Fullscreen";
+    $('osc-btn-fill').textContent = on ? "Restore" : "Fill window";
+    layoutCalc(); barShow();
+  }
+  function layoutCalc() {
+    var land = false;
+    if (cfg.orient === 'landscape') land = true;
+    else if (cfg.orient === 'portrait') land = false;
+    else if (shell.classList.contains('osc-is-fs')) land = window.innerWidth > window.innerHeight;
+    shell.classList.toggle('osc-landscape', land);
+  }
+  function toggleFs() {
+    if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} return; }
+    if (shell.classList.contains('osc-is-fs') && !document.fullscreenElement) { setFs(false); return; }
+    try {
+      var p = shell.requestFullscreen();
+      if (p && p.catch) { p.catch(function () { setFs(true); }); } else { setFs(true); }
+    } catch (e) { setFs(true); }
+  }
+  var barTimer = null;
+  function barShow() {
+    if (!cfg.autoHide) { barEl.classList.remove('osc-dim'); return; }
+    barEl.classList.remove('osc-dim');
+    clearTimeout(barTimer);
+    barTimer = setTimeout(function () { if (shell.classList.contains('osc-is-fs')) barEl.classList.add('osc-dim'); }, 3000);
+  }
+
+  function share() {
+    var last = recs[recs.length - 1];
+    var txt = last
+      ? ("One Second Challenge — I hit" + ' ' + sec(last.ms) + ' s, ' + (last.d >= 0 ? '+' : '') + last.d + ' ms (' + GN[last.g] + ')')
+      : "One Second Challenge: try to land exactly one second";
+    try { navigator.clipboard.writeText(txt); toast("Result copied"); }
+    catch (e) {
+      var ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); toast("Result copied"); } catch (e2) { toast('copy-failed'); }
+      document.body.removeChild(ta);
+    }
+  }
+
+  function nudge(d) {
+    if (phase === 'running') return;
+    setTarget(Math.max(100, Math.min(60000, cfg.targetMs + d)));
+  }
+
+  stage.addEventListener('click', function () { if (phase === 'running') stop(); else start(); });
+  stage.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+  });
+  btnMain.addEventListener('click', function (e) { e.stopPropagation(); toggle(); });
+  $('osc-btn-reset').addEventListener('click', resetCurrent);
+  $('osc-btn-undo').addEventListener('click', undo);
+  $('osc-btn-clear').addEventListener('click', clearRecs);
+  $('osc-btn-share').addEventListener('click', share);
+  $('osc-btn-fs').addEventListener('click', function (e) { e.stopPropagation(); toggleFs(); });
+  $('osc-btn-fill').addEventListener('click', function (e) { e.stopPropagation(); setFs(!shell.classList.contains('osc-is-fs')); });
+  document.addEventListener('fullscreenchange', function () { setFs(!!document.fullscreenElement); });
+
+  $('osc-sel-target').addEventListener('change', function () {
+    if (this.value === 'custom') { openCustom(true); return; }
+    setTarget(parseInt(this.value, 10));
+  });
+  $('osc-cust-ok').addEventListener('click', function () {
+    var v = parseMs($('osc-cust-text').value);
+    if (v === null) { toast("Target range 100 ms ~ 60 s"); return; }
+    openCustom(false); setTarget(v);
+  });
+  $('osc-cust-cancel').addEventListener('click', function () { openCustom(false); });
+  $('osc-cust-text').addEventListener('input', function () {
+    var v = parseMs(this.value);
+    if (v !== null) { cfg.targetMs = v; renderStatic(); renderIdle(); $('osc-sel-target').value = 'custom'; }
+    $('osc-cust-hint').textContent = '= ' + (v === null ? "Invalid" : (v >= 1000 ? sec(v) + ' s' : v + ' ms'));
+  });
+
+  var KP = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '<'];
+  (function () {
+    var box = $('osc-kp'); box.innerHTML = '';
+    KP.forEach(function (ch) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = ch;
+      b.addEventListener('click', function () {
+        if (ch === '<') { buf = buf.slice(0, -1); }
+        else if (ch === '.' && buf.indexOf('.') >= 0) return;
+        else if (buf.length >= 6) return;
+        else if (ch !== '.' && buf.indexOf('.') >= 0 && buf.split('.')[1].length >= 3) return;
+        else buf += ch;
+        $('osc-cust-text').value = buf;
+        $('osc-cust-text').dispatchEvent(new Event('input'));
+      });
+      box.appendChild(b);
+    });
+  })();
+  Array.prototype.forEach.call(document.querySelectorAll('.osc-chip[data-preset]'), function (b) {
+    b.addEventListener('click', function () {
+      var v = parseMs(b.getAttribute('data-preset'));
+      if (v !== null) { buf = String(v / 1000); $('osc-cust-text').value = buf; $('osc-cust-text').dispatchEvent(new Event('input')); }
+    });
+  });
+
+  function segBind(id, key, after) {
+    var wrap = $(id);
+    Array.prototype.forEach.call(wrap.querySelectorAll('button'), function (b) {
+      b.addEventListener('click', function () {
+        Array.prototype.forEach.call(wrap.querySelectorAll('button'), function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+        cfg[key] = b.getAttribute('data-v');
+        saveCfg();
+        if (after) after();
+        renderStatic();
+      });
+    });
+  }
+  segBind('osc-seg-mode', 'mode');
+  segBind('osc-seg-tol', 'tol');
+  segBind('osc-seg-orient', 'orient');
+  segBind('osc-seg-numdir', 'numeralDir');
+  $('osc-rng-scale').addEventListener('input', function () { cfg.scale = parseFloat(this.value); saveCfg(); renderStatic(); });
+  function swBind(id, key) {
+    var b = $(id);
+    b.addEventListener('click', function () {
+      cfg[key] = !cfg[key]; saveCfg(); b.classList.toggle('on', cfg[key]);
+    });
+  }
+  swBind('osc-sw-sound', 'sound');
+  swBind('osc-sw-vibe', 'vibrate');
+  swBind('osc-sw-hide', 'autoHide');
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target && e.target.matches && e.target.matches('input,select,textarea,[contenteditable]')) return;
+    var c = e.code || '';
+    if (c === 'Space' || c === 'Enter') { e.preventDefault(); toggle(); }
+    else if (e.key === 'r' || e.key === 'R') resetCurrent();
+    else if (e.key === 'f' || e.key === 'F') toggleFs();
+    else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); clearRecs(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); nudge(10); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); nudge(-10); }
+    barShow();
+  });
+  shell.addEventListener('mousemove', barShow);
+  window.addEventListener('resize', layoutCalc);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && phase === 'running') resetCurrent();
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('#osc-seg-mode button'), function (b) {
+    b.classList.toggle('on', b.getAttribute('data-v') === cfg.mode);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#osc-seg-tol button'), function (b) {
+    b.classList.toggle('on', b.getAttribute('data-v') === String(cfg.tol));
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#osc-seg-orient button'), function (b) {
+    b.classList.toggle('on', b.getAttribute('data-v') === cfg.orient);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#osc-seg-numdir button'), function (b) {
+    b.classList.toggle('on', b.getAttribute('data-v') === cfg.numeralDir);
+  });
+  $('osc-sel-target').value = [1000, 2000, 3000, 5000, 8000, 10000].indexOf(cfg.targetMs) >= 0 ? String(cfg.targetMs) : 'custom';
+  $('osc-rng-scale').value = String(cfg.scale);
+  $('osc-sw-sound').classList.toggle('on', cfg.sound);
+  $('osc-sw-vibe').classList.toggle('on', cfg.vibrate);
+  $('osc-sw-hide').classList.toggle('on', cfg.autoHide);
+
+  renderStatic(); renderIdle(); renderRecs();
+  if (!guided) {
+    var g = $('osc-guide');
+    var kill = function () {
+      if (g) { g.parentNode.removeChild(g); }
+      try { localStorage.setItem(GKEY, '1'); } catch (e) {}
+      guided = true;
+      shell.removeEventListener('click', kill, true);
+    };
+    setTimeout(kill, 6000);
+    shell.addEventListener('click', kill, true);
+  }
+  barShow();
+})();
+</script>
+<script>(function(){var r=document.querySelector('.osc-shell');if(r)r.classList.add('is-fs');})();</script>
+</body>
+</html>
